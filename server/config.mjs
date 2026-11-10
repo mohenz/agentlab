@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { REPO_DIR, configFile } from './paths.mjs';
+import { normalizeRoster } from './roster.mjs';
 
 export const DEFAULT_PORT = 4777;
 export const DEFAULTS = Object.freeze({
@@ -13,6 +14,7 @@ export const DEFAULTS = Object.freeze({
   staleHours: 6,
   kidCommits: 50,
   lang: 'auto',
+  roster: [],
 });
 
 export const VERSION = (() => {
@@ -42,6 +44,7 @@ export function normalizeConfig(raw) {
     staleHours: num(c.staleHours, 0.05, 24 * 30, DEFAULTS.staleHours),
     kidCommits: num(c.kidCommits, 0, 1e9, DEFAULTS.kidCommits),
     lang: ['auto', 'ko', 'en'].includes(c.lang) ? c.lang : 'auto',
+    roster: normalizeRoster(c.roster),
   };
 }
 
@@ -84,6 +87,6 @@ export function demoPort(cfg = loadConfig()) {
 
 /** setup 이 처음 만들어 두는 config.json 내용 */
 export function defaultConfigText() {
-  const { port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang } = DEFAULTS;
-  return JSON.stringify({ port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang }, null, 2) + '\n';
+  const { port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster } = DEFAULTS;
+  return JSON.stringify({ port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster }, null, 2) + '\n';
 }

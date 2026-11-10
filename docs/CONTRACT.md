@@ -120,7 +120,8 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
 
 ```json
 { "port": 4777, "autoStart": true, "homes": { "my-main-project": "server" },
-  "hide": ["scratch"], "fallbackMinutes": 20, "staleHours": 6, "kidCommits": 50, "lang": "auto" }
+  "hide": ["scratch"], "fallbackMinutes": 20, "staleHours": 6, "kidCommits": 50, "lang": "auto",
+  "roster": [ { "name": "Rick Deckard", "role": "전략 PMO", "tool": "OpenCode", "process": "opencode.exe" } ] }
 ```
 
 - `port` — 서버 포트(환경변수 `CLAUDE_OFFICE_PORT` 가 우선). 서버는 **127.0.0.1 에만** 붙는다.
@@ -128,6 +129,14 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
 - `homes` — 프로젝트 이름(또는 경로) → "server" 면 그 캐릭터는 서버실에 서서 일한다.
 - `hide` — 사무실에 안 띄울 프로젝트 이름·경로.
 - `lang` — "auto" | "ko" | "en". 화면에 그대로 전달(`GET /api/config`).
+- `roster` — **상주 에이전트**. Claude 세션이 없어도 사무실에 앉아 있게 올릴 에이전트(예: OpenCode·Antigravity 로 도는 페르소나) 목록.
+  항목은 `{ "name": "Rick Deckard", "role": "전략 PMO", "tool": "OpenCode", "match": "", "process": "opencode.exe" }`.
+  - `name` 필수(40자, 대소문자 무시 중복 불가), `role`(80자)·`tool`(60자)은 화면 패널에 보인다. 최대 30개.
+  - `match` — 살아 있는 사람(프로젝트 폴더 이름 또는 경로)과 맞으면 그 사람의 이름·역할을 바꾼다(새 캐릭터를 만들지 않는다). 한 사람은 한 에이전트만 받는다.
+  - 맞는 사람이 없으면 책상에 앉은(`rest`) 캐릭터를 올린다: `id` = `roster:<name>`, `source` = `"roster"`, `sessions` = 0, `path` = "".
+  - `process` — 실행 파일 이름(예: `opencode.exe`). 떠 있으면 `online: true`, 없으면 `false`(꺼져 있어도 사무실에는 앉아 있다). 안 적으면 항상 켜짐.
+  - `hide` 에 든 이름은 올리지 않는다.
+  Person 에 `role`·`tool`·`roster: true`·`online`(상주 에이전트일 때), 이름을 바꾼 경우 원래 프로젝트 이름 `project` 가 더해진다.
 
 ## 6. 생존 판정 (세션이 아직 켜져 있나)
 

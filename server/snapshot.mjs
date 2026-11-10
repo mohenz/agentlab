@@ -8,6 +8,7 @@ import { cardAlive, processStarts } from './liveness.mjs';
 import { cleanupCards, mtimeOf, readCards, recentTranscripts, transcriptFor } from './sessions.mjs';
 import { LOG_N, MAX_SUBS, oneLine, readTranscript, runningSubagents } from './activity.mjs';
 import { installedEvents } from './hooks-config.mjs';
+import { applyRoster } from './roster.mjs';
 
 export const API_VERSION = 1;
 const GIT_TTL_MS = 10 * 60 * 1000; // 루트·커밋 수는 10분 캐시 — git 을 3초마다 두드리지 않게
@@ -200,6 +201,8 @@ export async function buildSnapshot(opts = {}) {
   for (const p of people) {
     if (count.get(nameKey(p.name)) > 1) p.name = `${p.name} (${path.basename(path.dirname(p.path))})`;
   }
+  // 상주 에이전트(config.json 의 roster) — 이름 겹침 정리 뒤에 얹어야 살아 있는 사람 이름과 비교가 맞는다
+  applyRoster(people, cfg.roster, { running: opts.running, hide: (n) => matches(cfg.hide, n, pathKey(n)) });
   people.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
   return {

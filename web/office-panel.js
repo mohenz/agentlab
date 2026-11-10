@@ -32,10 +32,15 @@ const OfficePanel = (() => {
       p.append(el("span", "o-k", t("d.path")), el("code", null, d.path));
       box.append(p);
     }
-    const facts = [t("d.sessions", { n: d.sessions || 1 })];
+    const facts = d.source === "roster" ? [] : [t("d.sessions", { n: d.sessions || 1 })];
     if (d.commits != null) facts.push(t("d.commits", { n: d.commits }));
     if (d.pending > 1) facts.push(t("d.pending", { n: d.pending }));
     if (d.source === "transcript") facts.push(t("d.transcript"));
+    if (d.roster) {                                    // 상주 에이전트(config.json roster) — 역할·도구·켜짐 여부
+      if (d.role) facts.unshift(d.role);
+      if (d.tool) facts.push(d.tool);
+      facts.push(t(d.online === false ? "d.rosterOff" : "d.rosterOn"));
+    }
     box.append(el("p", "o-facts", facts.join(" · ")));
     const subs = d.subs || [];
     if (subs.length || d.subCount) {
