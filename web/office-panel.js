@@ -118,7 +118,7 @@ const OfficePanel = (() => {
     if (sub) c.append(el("small", "o-cs", sub));
     return c;
   }
-  function cards(people, quota, now = Date.now()) {
+  function cards(people, quota, schedule, now = Date.now()) {
     const box = $("office-cards");
     if (!box) return;
     const list = people || [];
@@ -143,6 +143,24 @@ const OfficePanel = (() => {
       problems.append(row);
     }
     const out = [grid, problems];
+    if (schedule) {                                           // 오늘의 초청 — 서버가 PMOTOOLS 에서 받아 둔 오늘 일정
+      const c = el("div", "o-card o-today");
+      const head = el("p", "o-thead");
+      head.append(el("span", "o-ct", t("card.today")), el("b", null, t("card.todayN", { n: schedule.items.length })));
+      c.append(head);
+      const hm = iso => new Date(iso).toLocaleTimeString(I18N.lang === "en" ? "en-GB" : "ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+      for (const it of schedule.items) {
+        const start = Date.parse(it.startAt), end = it.endAt ? Date.parse(it.endAt) : start;
+        const state = end < now ? "past" : start <= now ? "now" : "";
+        const row = el("p", "o-trow" + (state ? " " + state : ""));
+        row.append(el("time", null, it.allDay ? t("sched.allday") : hm(it.startAt)), el("span", null, it.title));
+        if (it.location) row.append(el("small", null, it.location));
+        c.append(row);
+      }
+      if (!schedule.items.length && !schedule.error) c.append(el("small", "o-cs", t("card.todayNone")));
+      if (schedule.error) c.append(el("small", "o-err", t("card.todayErr." + schedule.error)));
+      out.push(c);
+    }
     if ((quota || []).length) {
       const q = el("div", "o-card o-quota");
       q.append(el("span", "o-ct", t("card.quota")));

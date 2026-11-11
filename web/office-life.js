@@ -37,8 +37,8 @@ const OfficeLife = (() => {
   }
 
   // ---------- 말풍선 ----------
-  function say(p, text, dur = 2.8, kind = "talk") {
-    if (text) p.bubble = { text: cut(text, 26), until: L.t + dur, kind };
+  function say(p, text, dur = 2.8, kind = "talk", max = 26) {
+    if (text) p.bubble = { text: cut(text, max), until: L.t + dur, kind };
   }
 
   // ---------- 할 일 = 단계 목록 ----------
@@ -64,7 +64,7 @@ const OfficeLife = (() => {
     p.mixAt = L.t + rnd(2, 5);
     if (s.face) p.face = s.face;
     if (s.chat && !p.chat) p.until = L.t + 0.5;      // 걸어오는 사이 수다가 끝났다 — 서 있지 말고 다음 일로
-    if (s.say) say(p, typeof s.say === "function" ? s.say() : s.say, s.sayDur || 2.8, s.sayKind || "talk");
+    if (s.say) say(p, typeof s.say === "function" ? s.say() : s.say, s.sayDur || 2.8, s.sayKind || "talk", s.sayMax || 26);
   }
   // 첫 화면 — 걷지 않고 그 자리에 바로 놓는다
   function snap(p) {
@@ -146,6 +146,7 @@ const OfficeLife = (() => {
     leaveChat(p);
     release(p);
     if (p.leaving) return;
+    if (p.greeter && OFFICE_SPOTS.wait?.length) return greeterPlan(p);     // 맞이하는 사람은 대기 자리에서 기다린다
     const home = homeOf(p);
     if (home && modeOf(p) === "work") {        // 서버실 랙 앞에 서서 일한다 — 가끔 생각·통화·만세
       const w = home.work;
@@ -414,6 +415,37 @@ const OfficeLife = (() => {
   function reset() {
     L.people.clear(); L.minis.clear(); L.desks.clear(); L.taken.clear(); L.chats.clear(); L.greeted.clear();
     L.events.length = 0; L.synced = false;
+    L.greet = true;                                   // 층에 들어왔다 — 맞이하는 사람이 있으면 인사하고 오늘 일정을 알려 준다
+  }
+  // ---------- 맞이하기 — 오늘의 초청 일정을 말풍선으로 ----------
+  // 서버의 schedule({ items:[{title,startAt,endAt,allDay,location}], error, greeter })을 받아 둔다. 이 층에 맞이하는 사람(greeter)이
+  // 대기 자리(OFFICE_SPOTS.wait)에 서 있다가, 층에 들어오면 인사 → 남은 일정을 하나씩(시각·제목, 장소) → 맺음말.
+  const GREET_MAX_ITEMS = 6, GREET_BUBBLE = 44;
+  const clock = iso => new Date(iso).toLocaleTimeString(I18N.lang === "en" ? "en-GB" : "ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  function setSchedule(s) { L.schedule = s && Array.isArray(s.items) ? s : null; }
+  function greetingSteps(w, now = Date.now()) {
+    const t = (k, v) => I18N.t(k, v);
+    const items = L.schedule?.items || [];
+    const left = items.filter(x => !x.endAt || Date.parse(x.endAt) >= now);
+    const hello = (text, extra = {}) => ({ pose: "wave", dur: 3.2, face: w.face, say: text, sayDur: 3.1, sayMax: GREET_BUBBLE, ...extra });
+    if (!items.length) return [hello(t("sched.none"))];
+    if (!left.length) return [hello(t("sched.done", { n: items.length }))];
+    const steps = [hello(t("sched.hello", { n: items.length, m: left.length }), { dur: 3.8, sayDur: 3.7 })];
+    for (const it of left.slice(0, GREET_MAX_ITEMS)) {
+      const when = it.allDay ? t("sched.allday") : clock(it.startAt);
+      steps.push({ pose: "talk", dur: 3.6, face: w.face, say: `${when} ${it.title}`, sayDur: 3.5, sayMax: GREET_BUBBLE });
+      if (it.location) steps.push({ pose: "think", dur: 2.4, face: w.face, say: `📍 ${it.location}`, sayDur: 2.3, sayKind: "think", sayMax: GREET_BUBBLE });
+    }
+    if (left.length > GREET_MAX_ITEMS) steps.push({ pose: "talk", dur: 2.4, face: w.face, say: t("sched.more", { n: left.length - GREET_MAX_ITEMS }), sayDur: 2.3, sayMax: GREET_BUBBLE });
+    steps.push({ pose: "wave", dur: 2, face: w.face, say: t("sched.end"), sayDur: 1.9 });
+    return steps;
+  }
+  function greeterPlan(p) {
+    const w = OFFICE_SPOTS.wait[0];
+    const steps = [{ go: w.at, via: w.via }];
+    if (L.greet) { L.greet = false; steps.push(...greetingSteps(w)); }
+    steps.push({ pose: "stand", dur: rnd(10, 16), face: w.face, mix: [["think", 0.1, 1.6], ["phScroll", 0.12, 4]] });
+    run(p, steps);
   }
 
   // ---------- 데이터가 오면 들이고 내보낸다 ----------
@@ -432,7 +464,7 @@ const OfficeLife = (() => {
       }
       const was = p.status, wasDoing = p.doing, back = p.leaving, wasMode = fresh ? null : modeOf(p);
       const wasDesk = L.desks.get(p.id);
-      Object.assign(p, { name: d.name, status: d.status, ask: d.ask || "", kid: !!d.kid, home: d.home || null, tag: d.tag || null,
+      Object.assign(p, { name: d.name, status: d.status, ask: d.ask || "", kid: !!d.kid, home: d.home || null, tag: d.tag || null, greeter: !!d.greeter,
                          doing: d.doing || "", subCount: d.subCount || 0, subs: d.subs || [], commits: d.commits,
                          path0: d.path });
       if (fresh) {
@@ -449,16 +481,16 @@ const OfficeLife = (() => {
       } else if (back) {
         p.leaving = false; p.gone = false; p.alpha = 1;
         choose(p);
-      } else if (was !== p.status || wasMode !== modeOf(p)) {
+      } else if (!p.greeter && (was !== p.status || wasMode !== modeOf(p))) {   // 맞이하는 사람은 상태가 바뀌어도 하던 인사·대기를 끊지 않는다
         if (p.status === "working" && was !== "working") event(p, "work");
         else if (p.status === "decision" && was !== "decision") event(p, "ask", p.ask);
         else if (modeOf(p) === "work" && wasMode !== "work") event(p, "subwork");
         else if (wasMode === "work" && modeOf(p) === "rest") { event(p, "done"); p.over = { pose: "cheer", until: L.t + 1.4 }; }
         choose(p);
-      } else if (modeOf(p) === "work" && wasDesk >= 0 && !deskOk(wasDesk, p)) {
+      } else if (!p.greeter && modeOf(p) === "work" && wasDesk >= 0 && !deskOk(wasDesk, p)) {
         choose(p);                                 // 서브에이전트가 생겼는데 옆자리가 막혔다 — 넓은 자리로 옮겨 앉는다
       }
-      if (modeOf(p) === "work" && p.doing && p.doing !== wasDoing) { say(p, p.doing, 4, "work"); p.nextSay = L.t + rnd(6, 10); }
+      if (!p.greeter && modeOf(p) === "work" && p.doing && p.doing !== wasDoing) { say(p, p.doing, 4, "work"); p.nextSay = L.t + rnd(6, 10); }
       syncMinis(p, d);
     }
     for (const p of L.people.values()) {
@@ -527,7 +559,7 @@ const OfficeLife = (() => {
         }
       }
       // 말풍선 — 일하는 사람은 실제 하는 일, 쉬는 사람은 혼잣말
-      if (t > p.nextSay && !p.chat) {
+      if (t > p.nextSay && !p.chat && !p.greeter) {       // 맞이하는 사람의 인사 말풍선을 혼잣말이 덮지 않는다
         if (p.act?.work) { say(p, p.doing || line("work"), 3.6, "work"); p.nextSay = t + rnd(6, 11); }
         else if (!p.act?.hop) { if (Math.random() < 0.5) say(p, line("think"), 2.2, "think"); p.nextSay = t + rnd(10, 22); }
         else p.nextSay = t + 5;
@@ -596,6 +628,6 @@ const OfficeLife = (() => {
     }
   }
 
-  return { L, SIT_DESK, sync, reset, update, cut, nearest, route, colorOf, speciesOf, modeOf, blocked, onFloor,
+  return { L, SIT_DESK, sync, reset, setSchedule, update, cut, nearest, route, colorOf, speciesOf, modeOf, blocked, onFloor,
            drainEvents: () => L.events.splice(0, L.events.length) };
 })();

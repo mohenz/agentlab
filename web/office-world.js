@@ -64,7 +64,7 @@ const WORK_OVERFLOW = [
   { seat: [636, 586], via: "mtg" }, { seat: [723, 593], via: "mtg" }, { seat: [774, 603], via: "mtg" },
 ];
 const WORK_SPOTS = {
-  sofa: [], cafe: [], armchair: [], board: [], server: [],     // 이 그림에는 소파·탕비실·서재 안락의자·서버실 길이 없다 — 그 활동은 건너뛴다
+  sofa: [], cafe: [], armchair: [], board: [], server: [], wait: [],     // 이 그림에는 소파·탕비실·서재 안락의자·서버실 길이 없다 — 그 활동은 건너뛴다
   coffee: [{ at: [345, 792], via: "inner", face: -1 }, { at: [445, 802], via: "lob2", face: -1 }],   // 안내데스크 앞 — 카운터에서 한 잔
   meeting: [{ at: [636, 586], via: "mtg", face: 1 }, { at: [774, 603], via: "mtg", face: 1 }, { at: [723, 593], via: "mtg", face: 1 }],
   stroll: [
@@ -96,6 +96,7 @@ const SUITE_FLOOR = [[30, 640], [240, 520], [780, 420], [1000, 380], [1480, 470]
 const SUITE_SPOTS = {
   sofa: [{ at: [1010, 540], via: "s1", face: 1 }, { at: [1300, 470], via: "s3", face: -1 }],            // 집무실 소파 둘
   cafe: [], coffee: [], board: [], server: [], meeting: [],
+  wait: [{ at: [610, 612], via: "lobA", face: 1 }],                                                   // 맞이하는 사람이 기다리는 자리(로비 유리문 앞)
   armchair: [{ at: [655, 790], via: "lobD", face: 1 }, { at: [830, 690], via: "lobC", face: -1 }],      // 로비 안락의자 둘
   stroll: [{ at: [560, 590], via: "lobA" }, { at: [700, 660], via: "lobB" }, { at: [1150, 600], via: "s2" }, { at: [900, 600], via: "in1" }],
 };

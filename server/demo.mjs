@@ -11,7 +11,15 @@ const CAST = [
   { name: 'mobile-client', commits: 1290, floor: 'knowledge' },
   { name: 'infra-scripts', commits: 41, floor: 'work3' },
   { name: 'playground', commits: null, floor: 'suite' },
+  { name: 'Rachael', commits: null, floor: 'suite', greeter: true, gender: 'f' },
 ];
+const DEMO_SCHEDULE = (now) => ({
+  items: [
+    { id: 'd1', title: '[FO] 1.0 마이페이지 2차 고객 리뷰', startAt: new Date(now + 40 * 60000).toISOString(), endAt: new Date(now + 100 * 60000).toISOString(), allDay: false, location: '본관 22층 대회의실', sender: '홍길동', kind: 'calendar', isRead: true },
+    { id: 'd2', title: '주문 I/F 개발 일정 확인 미팅', startAt: new Date(now + 150 * 60000).toISOString(), endAt: new Date(now + 210 * 60000).toISOString(), allDay: false, location: '본관 15층 GREAT3', sender: '김철수', kind: 'calendar', isRead: true },
+  ],
+  fetchedAt: new Date(now).toISOString(), error: null, greeter: 'Rachael',
+});
 const DEMO_QUOTA = (now) => [
   { name: 'Claude 주', period: '주간', remaining: 37, resetAt: new Date(now + 3 * 86400000).toISOString(), checkedAt: new Date(now - 20 * 60000).toISOString() },
   { name: 'Claude 부', period: '5시간', remaining: 82, resetAt: new Date(now + 2 * 3600000).toISOString(), checkedAt: new Date(now - 9 * 3600000).toISOString() },
@@ -120,10 +128,11 @@ export function createDemo(seed = 7, start = Date.now()) {
           context: p.context ?? null,
           account: p.account ?? null,
           gender: p.gender ?? null,
+          ...(p.greeter ? { greeter: true } : {}),
           doing: last ? { k: last.k, a: last.a } : null,
           log: p.log.map((e) => ({ ...e })),
         };
       });
-    return { version: API_VERSION, now: new Date(now).toISOString(), hooks: true, demo: true, floors: floorSummary(cfg, list), quota: DEMO_QUOTA(now), people: list };
+    return { version: API_VERSION, now: new Date(now).toISOString(), hooks: true, demo: true, floors: floorSummary(cfg, list), quota: DEMO_QUOTA(now), schedule: DEMO_SCHEDULE(now), people: list };
   };
 }

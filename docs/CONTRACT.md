@@ -63,6 +63,8 @@ PermissionRequest 는 승인 창이 뜨는 즉시, Notification(permission_promp
   "version": 1,
   "now": "2026-10-22T01:02:03.456Z",
   "floors": [ { "id": "work1", "label": "업무층 1", "count": 3 } ],   // 층 목록과 층별 인원(추가 필드 — 옛 화면은 무시)
+  "schedule": { "items": [ { "id": "..", "title": "회의", "startAt": "ISO", "endAt": "ISO|null", "allDay": false, "location": "장소", "sender": "보낸 사람", "kind": "calendar|meeting", "isRead": true } ],
+                "fetchedAt": "ISO|null", "error": null, "greeter": "Rachael" },   // 오늘의 초청(설정 schedule 이 없으면 null). error = login|network|http|parse
   "quota": [ { "name": "Claude 주", "period": "주간", "remaining": 37, "resetAt": "ISO|null", "checkedAt": "ISO|null" } ],  // quota.json(수동 입력)
   "hooks": true,
   "demo": false,
@@ -90,6 +92,7 @@ PermissionRequest 는 승인 창이 뜨는 즉시, Notification(permission_promp
   "compactions": 0,                // 이 프로젝트 세션들이 압축(PreCompact)한 횟수 합 — 훅이 카드의 compactCount 로 누적
   "context": 45,                   // 마지막 답이 읽은 컨텍스트 ÷ contextWindow, 0~100 정수. 모르면 null
   "account": "주",                 // 설정 accountMap·roster.account 의 짧은 이름. 없으면 null
+  "greeter": true,                 // (선택) 설정 schedule.greeter 와 이름이 같은 사람에게만 붙는다 — 대표실에서 오늘 일정을 알려 주는 사람
   "gender": null,                  // 상주 에이전트(roster.gender)의 "f"|"m". 그 밖엔 null — 화면은 gender 가 없으면 Claude Code 세션은 여성 캐릭터, 그 밖의 도구는 이름으로 고른다
   "subs": [ { "id": "a1b2", "type": "Explore", "desc": "find auth code", "doing": Act|null } ],  // 최대 12
   "subCount": 1,                   // 실제로 일하는 서브에이전트 수(12 초과 가능)
@@ -152,6 +155,21 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
   - `gender` — `"f"`(여성 캐릭터)·`"m"`(남성 캐릭터). `여`·`남`·`female`·`male` 도 받는다. 안 적으면 위 규칙.
   - `hide` 에 든 이름은 올리지 않는다.
   Person 에 `role`·`tool`·`roster: true`·`online`(상주 에이전트일 때), 이름을 바꾼 경우 원래 프로젝트 이름 `project` 가 더해진다.
+
+### 5-0. 오늘의 초청 일정 (`schedule`)
+
+PMOTOOLS 초청함에서 **오늘 시작하는 초청**을 받아 3D 사무실 대표실에서 `greeter`(맞이하는 사람)가 알려 준다.
+
+```json
+"schedule": { "baseUrl": "http://pmotools.example:3020", "userId": "user01", "password": "…", "projectCode": "PRJ01",
+              "refreshMinutes": 15, "greeter": "Rachael", "timeZone": "Asia/Seoul" }
+```
+
+- `baseUrl`·`userId`·`password`·`projectCode` 가 모두 있어야 켜진다(하나라도 없으면 조용히 꺼짐). `refreshMinutes` 5~120(기본 15), `greeter` 기본 `Rachael`, `timeZone` 기본 `Asia/Seoul`(오늘의 기준).
+- 서버가 NextAuth 로그인(`/api/auth/csrf` → `/api/auth/callback/credentials`) 후 `GET /api/v1/messages` 를 읽는다. 일정 초청(`calendarInvitation`)과 회의실 초청(`meetingInvitation`)을 같은 모양으로 합친다.
+- 실패하면 이전 목록을 지키고 1분 뒤 다시 시도한다. 오류는 코드(`login`·`network`·`http`·`parse`)로만 내보낸다.
+- **보안**: 비밀번호는 `config.json` 에 **평문**으로 남는다(사용자가 선택한 방식). 서버는 이 값을 `/api/office`·`/api/config`·로그·오류 문구에 싣지 않는다(시험으로 고정). 이 파일을 공유·백업·커밋하지 말고, PMOTOOLS 비밀번호를 바꾸면 여기도 고친다.
+- 화면: `greeter` 가 대표실(`suite`) 로비에서 기다리다가 사용자가 그 층에 들어오면 인사 → 남은 일정(시각·제목, 장소) → 맺음말을 말풍선으로 알려 준다. 오른쪽에 "오늘의 초청" 카드. `greeter` 를 대표실에 두려면 roster 항목에 `"floor": "suite"`.
 
 ### 5-1. 계정 남은 한도 (`~/.claude-office/quota.json`, 없어도 됨)
 

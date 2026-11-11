@@ -11,6 +11,7 @@ import { installedEvents } from './hooks-config.mjs';
 import { applyRoster } from './roster.mjs';
 import { loadQuota } from './quota.mjs';
 import { codexSessions, readExternal } from './external.mjs';
+import { refreshSchedule, scheduleView } from './schedule.mjs';
 
 export const API_VERSION = 1;
 const GIT_TTL_MS = 10 * 60 * 1000; // 루트·커밋 수는 10분 캐시 — git 을 3초마다 두드리지 않게
@@ -250,6 +251,12 @@ export async function buildSnapshot(opts = {}) {
   applyRoster(people, cfg.roster, { running: opts.running, hide: (n) => matches(cfg.hide, n, pathKey(n)) });
   people.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const floors = floorSummary(cfg, people);
+  // 오늘의 초청 일정 — 캐시만 읽고, 주기가 지났으면 뒤에서 새로 받는다. greeter(맞이하는 사람)에게 표시를 붙인다
+  if (cfg.schedule) {
+    if (opts.schedule === undefined) refreshSchedule(cfg.schedule, now);
+    for (const p of people) if (nameKey(p.name) === nameKey(cfg.schedule.greeter)) p.greeter = true;
+  }
+  const schedule = opts.schedule !== undefined ? opts.schedule : scheduleView(cfg.schedule, now);
 
   return {
     version: API_VERSION,
@@ -258,6 +265,7 @@ export async function buildSnapshot(opts = {}) {
     demo: false,
     floors,
     quota: opts.quota ?? loadQuota(),
+    schedule,
     people,
   };
 }

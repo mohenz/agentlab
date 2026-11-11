@@ -447,7 +447,7 @@
   const norm = d => ({ ...d, id: String(d.id ?? d.path ?? d.name), name: String(d.name ?? d.id ?? "?"),
                        subs: Array.isArray(d.subs) ? d.subs : [], log: Array.isArray(d.log) ? d.log : [] });
   const toLife = d => ({
-    id: d.id, name: d.name, status: d.status, ask: d.ask, kid: d.kid, home: d.home, commits: d.commits, path: d.path, gender: d.gender || null, source: d.source,
+    id: d.id, name: d.name, status: d.status, ask: d.ask, kid: d.kid, home: d.home, commits: d.commits, path: d.path, gender: d.gender || null, source: d.source, greeter: !!d.greeter,
     doing: I18N.act(d.doing), subCount: d.subCount || 0,
     tag: { ctx: Number.isFinite(d.context) ? d.context : null, compact: d.compactions > 0 ? d.compactions : 0, ask: d.pending > 0 || d.status === "decision", account: d.account || "" },
     subs: d.subs.map(s => ({ id: String(s.id), type: s.type || "", desc: s.desc || "", doing: I18N.act(s.doing) })),
@@ -460,6 +460,8 @@
       const body = await res.json();
       const people = (Array.isArray(body?.people) ? body.people : []).filter(d => d && (d.id || d.path || d.name)).map(norm);
       st.people = people;
+      st.schedule = body.schedule && Array.isArray(body.schedule.items) ? body.schedule : null;
+      OfficeLife.setSchedule(st.schedule);
       st.meta = { hooks: body.hooks !== false, demo: !!body.demo };
       st.failNet = false;
       st.floors = floorList(body.floors, people);
@@ -470,7 +472,7 @@
       if (st.sel && !people.some(p => p.id === st.sel)) st.sel = null;     // 퇴근한 사람은 고르기 해제
       OfficePanel.collect(people, OfficeLife.drainEvents());
       OfficePanel.render(people, st.sel);
-      OfficePanel.cards(people, st.quota);
+      OfficePanel.cards(people, st.quota, st.schedule);
     } catch {
       st.failNet = true;
     }
@@ -588,7 +590,7 @@
       applyText();
       if (st.people) OfficeLife.sync(st.people.filter(p => floorOf(p) === st.floor).map(toLife));   // 말풍선 글도 새 언어로
       OfficePanel.relabel();
-      if (st.people) OfficePanel.cards(st.people, st.quota);
+      if (st.people) OfficePanel.cards(st.people, st.quota, st.schedule);
       bar();
     });
     OfficePanel.onPick((id, keep) => select(id, keep));

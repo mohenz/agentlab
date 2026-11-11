@@ -78,6 +78,14 @@ button { font: inherit; color: inherit; }
 .o-qbar i { display: block; height: 100%; background: #27AE60; }
 .o-qbar.low i { background: #D92D20; }
 .o-qfoot { font-size: 11px; color: var(--ink3); }
+.o-thead { display: flex; align-items: baseline; justify-content: space-between; margin: 0; }
+.o-trow { display: grid; grid-template-columns: 44px 1fr; gap: 0 6px; margin: 3px 0 0; font-size: 13px; }
+.o-trow time { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--ink3); }
+.o-trow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-trow small { grid-column: 2; font-size: 11px; color: var(--ink3); }
+.o-trow.now span { font-weight: 700; }
+.o-trow.past { opacity: .5; }
+.o-err { color: #B42318; font-size: 12px; }
 #office-people { max-height: 50%; flex-shrink: 0; border-bottom: 1px solid #E8ECEA; padding-bottom: 6px; }
 #office-log { flex: 1; min-height: 0; }
 
