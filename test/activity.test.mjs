@@ -73,7 +73,7 @@ test('scanChunk: 앞 반쪽 줄·깨진 줄·기록용 줄은 버리고, 끝의 
   assert.equal(r.from, first.length - 20 + 1);
   assert.equal(r.to, buf.length - '{"type":"assistant","mess'.length); // 쓰다 만 줄은 다음에 읽는다
   assert.deepEqual(scanChunk(buf, false).acc.events.map((e) => e.a), ['last']); // 반쪽 줄은 깨진 JSON 이라 어차피 빠진다
-  assert.deepEqual(scanChunk(Buffer.from('no newline at all'), true), { acc: { events: [], last: null, cwd: '' }, from: 17, to: 17 });
+  assert.deepEqual(scanChunk(Buffer.from('no newline at all'), true), { acc: { events: [], last: null, cwd: '', ctx: 0 }, from: 17, to: 17 });
 });
 
 // 실측 모양: 최신 Claude Code 는 대화 줄 사이에 2MB 넘는 api-request-blob 줄을 끼워 넣는다
