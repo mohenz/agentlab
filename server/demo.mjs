@@ -119,6 +119,7 @@ export function createDemo(seed = 7, start = Date.now()) {
           compactions: p.compactions ?? 0,
           context: p.context ?? null,
           account: p.account ?? null,
+          gender: p.gender ?? null,
           doing: last ? { k: last.k, a: last.a } : null,
           log: p.log.map((e) => ({ ...e })),
         };

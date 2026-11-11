@@ -21,7 +21,7 @@ test('normalizeRoster: 이름 없는 항목·중복 이름·이상한 값은 버
     { name: 'x'.repeat(100), role: 'y'.repeat(200) },
   ]);
   assert.deepEqual(out.map((e) => e.name), ['Rick Deckard', 'Rachael', 'x'.repeat(40)]);
-  assert.deepEqual(out[1], { name: 'Rachael', role: '', tool: '', match: '', process: '', floor: '', account: '' });
+  assert.deepEqual(out[1], { name: 'Rachael', role: '', tool: '', match: '', process: '', floor: '', account: '', gender: '' });
   assert.equal(out[2].role.length, 80);
   assert.deepEqual(normalizeRoster('nope'), []);
   assert.deepEqual(normalizeRoster(undefined), []);
@@ -114,4 +114,15 @@ test('스냅샷: 설정의 roster 가 /api/office 의 people 에 상주 에이�
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
   }
+});
+
+test('성별: f/m 과 한글 표기를 받고, 모르는 값은 비운다. roster 의 gender 가 사람에게 얹힌다', async () => {
+  const { normalizeGender } = await import('../server/roster.mjs');
+  assert.deepEqual(['f', 'Female', '여', '여자', ' 여성 '].map(normalizeGender), ['f', 'f', 'f', 'f', 'f']);
+  assert.deepEqual(['m', 'MALE', '남', '남자', '남성'].map(normalizeGender), ['m', 'm', 'm', 'm', 'm']);
+  assert.deepEqual([undefined, '', 'x', 5, null].map(normalizeGender), ['', '', '', '', '']);
+  const people = applyRoster([], normalizeRoster([{ name: 'Eduardo Gaff', gender: '여자' }, { name: 'Rick Deckard', gender: 'm' }, { name: 'Rachael' }]), { running: new Set() });
+  assert.equal(people.find((p) => p.name === 'Eduardo Gaff').gender, 'f');
+  assert.equal(people.find((p) => p.name === 'Rick Deckard').gender, 'm');
+  assert.equal(people.find((p) => p.name === 'Rachael').gender, null); // 안 적으면 null
 });

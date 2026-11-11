@@ -7,6 +7,13 @@ import { IS_WIN, pathKey } from './paths.mjs';
 
 export const MAX_ROSTER = 30;
 const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+/** 성별 → 'f'(여)·'m'(남)·''(안 적음). f/female/여/여자 · m/male/남/남자 를 받는다 */
+export function normalizeGender(v) {
+  const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  if (['f', 'female', '여', '여자', '여성'].includes(s)) return 'f';
+  if (['m', 'male', '남', '남자', '남성'].includes(s)) return 'm';
+  return '';
+}
 
 /** 설정의 roster 를 검증한다. 이름이 없거나 같은 이름이 또 나오면 버린다. */
 export function normalizeRoster(raw) {
@@ -18,7 +25,7 @@ export function normalizeRoster(raw) {
     const name = text(e.name, 40);
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    out.push({ name, role: text(e.role, 80), tool: text(e.tool, 60), match: text(e.match, 260), process: text(e.process, 80), floor: text(e.floor, 20), account: text(e.account, 12) });
+    out.push({ name, role: text(e.role, 80), tool: text(e.tool, 60), match: text(e.match, 260), process: text(e.process, 80), floor: text(e.floor, 20), account: text(e.account, 12), gender: normalizeGender(e.gender) });
     if (out.length >= MAX_ROSTER) break;
   }
   return out;
@@ -65,7 +72,7 @@ export function applyRoster(people, roster, opts = {}) {
   for (const entry of roster) {
     if (hidden(entry.name)) continue;
     const online = entry.process ? running.has(imageKey(entry.process)) : true;
-    const meta = { role: entry.role, tool: entry.tool, roster: true, online, ...(entry.floor ? { floor: entry.floor } : {}), ...(entry.account ? { account: entry.account } : {}) };
+    const meta = { role: entry.role, tool: entry.tool, roster: true, online, ...(entry.floor ? { floor: entry.floor } : {}), ...(entry.account ? { account: entry.account } : {}), ...(entry.gender ? { gender: entry.gender } : {}) };
     const live = entry.match
       ? people.find((p) => !taken.has(p) && (String(p.name).toLowerCase() === entry.match.toLowerCase() || pathKey(p.path) === pathKey(entry.match)))
       : null;
@@ -76,7 +83,7 @@ export function applyRoster(people, roster, opts = {}) {
     }
     people.push({
       id: `roster:${entry.name}`, name: entry.name, path: '', status: 'rest', pending: 0, ask: '', sessions: 0,
-      source: 'roster', commits: null, kid: false, home: null, compactions: 0, context: null, account: null, subs: [], subCount: 0, doing: null, log: [], ...meta,
+      source: 'roster', commits: null, kid: false, home: null, compactions: 0, context: null, account: null, gender: null, subs: [], subCount: 0, doing: null, log: [], ...meta,
     });
   }
   return people;

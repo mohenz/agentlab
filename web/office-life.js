@@ -24,7 +24,10 @@ const OfficeLife = (() => {
     return h >>> 0;
   }
   const colorOf = name => OFFICE_COLORS[hash(name) % OFFICE_COLORS.length];
-  const speciesOf = name => (hash("종:" + name) % 2 ? "capy" : "frog");
+  // 캐릭터 종류: frog = 여성(캐릭터 A), capy = 남성(캐릭터 B).
+  // gender(상주 에이전트 설정)가 있으면 그대로, 없으면 Claude Code 세션(source hook·transcript)은 여성, 그 밖의 도구는 이름으로 고정(켜고 꺼도 같게).
+  const speciesOf = (name, d) => (d?.gender === "f" ? "frog" : d?.gender === "m" ? "capy"
+    : d && (d.source === "hook" || d.source === "transcript") ? "frog" : hash("종:" + name) % 2 ? "capy" : "frog");
   const cut = (text, n) => { const a = Array.from(text || ""); return a.length > n ? a.slice(0, n).join("") + "…" : a.join(""); };
   const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]);
   // 사건 — 글은 화면이 언어에 맞게 만든다(key = i18n 의 ev.* , arg = 끼워 넣을 말)
@@ -422,7 +425,7 @@ const OfficeLife = (() => {
       let p = L.people.get(d.id);
       const fresh = !p;
       if (fresh) {
-        p = { id: d.id, name: d.name, species: speciesOf(d.name), color: colorOf(d.name), x: 0, y: 0, path: [], steps: null,
+        p = { id: d.id, name: d.name, species: speciesOf(d.name, d), color: colorOf(d.name), x: 0, y: 0, path: [], steps: null,
               act: null, face: pick([1, -1]), phase: rnd(0, 6.28), alpha: 1, over: null, bubble: null,
               nextSay: L.t + rnd(3, 8), nextPart: 0 };
         L.people.set(d.id, p);

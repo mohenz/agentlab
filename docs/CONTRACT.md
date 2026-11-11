@@ -90,6 +90,7 @@ PermissionRequest 는 승인 창이 뜨는 즉시, Notification(permission_promp
   "compactions": 0,                // 이 프로젝트 세션들이 압축(PreCompact)한 횟수 합 — 훅이 카드의 compactCount 로 누적
   "context": 45,                   // 마지막 답이 읽은 컨텍스트 ÷ contextWindow, 0~100 정수. 모르면 null
   "account": "주",                 // 설정 accountMap·roster.account 의 짧은 이름. 없으면 null
+  "gender": null,                  // 상주 에이전트(roster.gender)의 "f"|"m". 그 밖엔 null — 화면은 gender 가 없으면 Claude Code 세션은 여성 캐릭터, 그 밖의 도구는 이름으로 고른다
   "subs": [ { "id": "a1b2", "type": "Explore", "desc": "find auth code", "doing": Act|null } ],  // 최대 12
   "subCount": 1,                   // 실제로 일하는 서브에이전트 수(12 초과 가능)
   "doing": Act|null,               // 지금 하는 일(가장 최근 활동)
@@ -148,6 +149,7 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
   - 맞는 사람이 없으면 책상에 앉은(`rest`) 캐릭터를 올린다: `id` = `roster:<name>`, `source` = `"roster"`, `sessions` = 0, `path` = "".
   - `process` — 실행 파일 이름(예: `opencode.exe`). 떠 있으면 `online: true`, 없으면 `false`(꺼져 있어도 사무실에는 앉아 있다). 안 적으면 항상 켜짐.
   - `floor` — 이 에이전트가 사는 층 id(안 적으면 `floorMap`·`defaultFloor` 규칙). `account` — 이름표에 붙일 짧은 계정 이름(12자).
+  - `gender` — `"f"`(여성 캐릭터)·`"m"`(남성 캐릭터). `여`·`남`·`female`·`male` 도 받는다. 안 적으면 위 규칙.
   - `hide` 에 든 이름은 올리지 않는다.
   Person 에 `role`·`tool`·`roster: true`·`online`(상주 에이전트일 때), 이름을 바꾼 경우 원래 프로젝트 이름 `project` 가 더해진다.
 

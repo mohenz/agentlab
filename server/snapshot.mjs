@@ -232,6 +232,7 @@ export async function buildSnapshot(opts = {}) {
       compactions: items.reduce((n, s) => n + (s.compactions || 0), 0),
       context: contextPct(latest.info.ctx, cfg.contextWindow),
       account: accountOf(cfg, base, key),
+      gender: null,
       subs: subs.slice(0, MAX_SUBS),
       subCount: subs.length,
       doing: latest.info.doing,
