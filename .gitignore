@@ -1,0 +1,9 @@
+# 올리지 않는 것 — 중복·대체된 사본·확인용 이미지·다른 제품의 화면 캡처
+/art_1/
+/art_prev/
+/*.zip
+/미디어*.jpg
+/build/*
+!/build/office/
+__pycache__/
+*.pyc
