@@ -52,5 +52,5 @@ test('설정: contextWindow 범위, 기본 설정 파일에 들어간다', () =>
 test('상주 에이전트: roster 의 account 를 얹는다', () => {
   const people = applyRoster([], normalizeRoster([{ name: 'Rick', account: '주' }, { name: 'Rachael' }]), { running: new Set() });
   assert.equal(people.find((p) => p.name === 'Rick').account, '주');
-  assert.equal(people.find((p) => p.name === 'Rachael').account, undefined);
+  assert.equal(people.find((p) => p.name === 'Rachael').account, null); // 안 적으면 null(계약)
 });
