@@ -8,7 +8,7 @@ const I18N = (() => {
 
   const TEXT = {
     ko: {
-      title: "3D 사무실",
+      title: "AgentLab",
       "lang.label": "언어",
       "side.people": "사무실 사람들",
       "side.log": "활동 로그",
@@ -71,7 +71,7 @@ const I18N = (() => {
       "ev.check": "확인 필요", "ev.task": "일 받음", "ev.end": "일 끝",
     },
     en: {
-      title: "3D Office",
+      title: "AgentLab",
       "lang.label": "Language",
       "side.people": "People in the office",
       "side.log": "Activity",
