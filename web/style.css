@@ -36,6 +36,14 @@ button { font: inherit; color: inherit; }
   padding: 6px 10px; font-size: 13px; line-height: 1.45; color: var(--ink); background: rgba(255, 255, 255, .94);
   border: 1px solid var(--line); border-left: 3px solid #C2410C; border-radius: 4px; pointer-events: none; }
 #notice[hidden] { display: none; }
+/* 층 선택 — 사무실 왼쪽 아래에 세로로. 누르면 그 층의 그림과 사람으로 바뀐다 */
+#floors { position: absolute; left: 12px; bottom: 12px; z-index: 1; display: flex; flex-direction: column; gap: 4px; }
+#floors[hidden] { display: none; }
+#floors .floor { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 120px; min-height: 32px; padding: 4px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, .94); color: var(--ink); font-size: 13px; cursor: pointer; }
+#floors .floor small { min-width: 20px; padding: 0 6px; border-radius: 10px; background: #E9ECEF; color: #5B6770; font-size: 11px; text-align: center; }
+#floors .floor.on { background: var(--ink); color: #FFFFFF; font-weight: 700; border-color: var(--ink); }
+#floors .floor.on small { background: rgba(255, 255, 255, .22); color: #FFFFFF; }
 #notice p { margin: 0; }
 #notice p + p { margin-top: 2px; }
 

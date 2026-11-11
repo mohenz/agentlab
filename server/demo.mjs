@@ -1,15 +1,16 @@
 // --demo: 실제 세션 대신 가짜 사람들 — 화면 시험·README 스크린샷용. 10~20초마다 상태가 바뀌고 로그가 자란다.
-import { API_VERSION } from './snapshot.mjs';
+import { API_VERSION, floorSummary } from './snapshot.mjs';
+import { normalizeConfig } from './config.mjs';
 
 const LOG_N = 8;
 const CAST = [
-  { name: 'my-app', commits: 812, sessions: 2 },
-  { name: 'api-server', commits: 340, home: 'server' },
-  { name: 'docs-site', commits: 23 },
-  { name: 'ml-pipeline', commits: 156 },
-  { name: 'mobile-client', commits: 1290 },
-  { name: 'infra-scripts', commits: 41 },
-  { name: 'playground', commits: null },
+  { name: 'my-app', commits: 812, sessions: 2, floor: 'work1' },
+  { name: 'api-server', commits: 340, home: 'server', floor: 'work1' },
+  { name: 'docs-site', commits: 23, floor: 'work2' },
+  { name: 'ml-pipeline', commits: 156, floor: 'work1' },
+  { name: 'mobile-client', commits: 1290, floor: 'knowledge' },
+  { name: 'infra-scripts', commits: 41, floor: 'work3' },
+  { name: 'playground', commits: null, floor: 'suite' },
 ];
 const ACTS = [
   ['read', 'server.mjs'], ['read', 'README.md'], ['edit', 'App.tsx'], ['edit', 'routes.ts'],
@@ -90,13 +91,9 @@ export function createDemo(seed = 7, start = Date.now()) {
     }
   }
 
+  const cfg = normalizeConfig({});
   return function snapshot(now = Date.now()) {
-    return {
-      version: API_VERSION,
-      now: new Date(now).toISOString(),
-      hooks: true,
-      demo: true,
-      people: people.map((p) => {
+    const list = people.map((p) => {
         step(p, now);
         const last = p.log[p.log.length - 1];
         return {
@@ -113,10 +110,11 @@ export function createDemo(seed = 7, start = Date.now()) {
           home: p.home || null,
           subs: p.subs.map((s) => ({ ...s })),
           subCount: p.subs.length,
+          floor: p.floor,
           doing: last ? { k: last.k, a: last.a } : null,
           log: p.log.map((e) => ({ ...e })),
         };
-      }),
-    };
+      });
+    return { version: API_VERSION, now: new Date(now).toISOString(), hooks: true, demo: true, floors: floorSummary(cfg, list), people: list };
   };
 }

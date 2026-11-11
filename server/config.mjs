@@ -5,6 +5,14 @@ import { REPO_DIR, configFile } from './paths.mjs';
 import { normalizeRoster } from './roster.mjs';
 
 export const DEFAULT_PORT = 4777;
+/** 층 목록 기본값 — id 는 화면의 층 그림·좌표(web/office-world.js OFFICE_FLOORS)와 같아야 한다. label 은 config.json 의 floors 로 바꿀 수 있다 */
+export const DEFAULT_FLOORS = Object.freeze([
+  { id: 'work1', label: '업무층 1' },
+  { id: 'work2', label: '업무층 2' },
+  { id: 'work3', label: '업무층 3' },
+  { id: 'knowledge', label: '지식층' },
+  { id: 'suite', label: '대표실' },
+]);
 export const DEFAULTS = Object.freeze({
   port: DEFAULT_PORT,
   autoStart: true,
@@ -15,6 +23,9 @@ export const DEFAULTS = Object.freeze({
   kidCommits: 50,
   lang: 'auto',
   roster: [],
+  floors: DEFAULT_FLOORS,
+  floorMap: {},
+  defaultFloor: 'work1',
 });
 
 export const VERSION = (() => {
@@ -28,12 +39,34 @@ export const VERSION = (() => {
 const num = (v, lo, hi, def) => (Number.isFinite(v) && v >= lo && v <= hi ? v : def);
 const plainObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
 
+/** 층 목록 검증 — id 는 영문·숫자·_- 20자, 이름 30자, 최대 12층, 중복 id 는 버린다. 하나도 없으면 기본 목록 */
+export function normalizeFloors(raw) {
+  if (!Array.isArray(raw)) return DEFAULT_FLOORS.map((f) => ({ ...f }));
+  const seen = new Set();
+  const out = [];
+  for (const f of raw) {
+    if (!plainObj(f)) continue;
+    const id = typeof f.id === 'string' ? f.id.trim() : '';
+    if (!/^[A-Za-z0-9_-]{1,20}$/.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    const label = typeof f.label === 'string' && f.label.trim() ? f.label.trim().slice(0, 30) : id;
+    out.push({ id, label });
+    if (out.length >= 12) break;
+  }
+  return out.length ? out : DEFAULT_FLOORS.map((f) => ({ ...f }));
+}
+
 /** 읽은 값 → 검증된 설정. 모르는 키는 버린다. */
 export function normalizeConfig(raw) {
   const c = plainObj(raw) ? raw : {};
   const homes = {};
   if (plainObj(c.homes)) {
     for (const [k, v] of Object.entries(c.homes)) if (typeof v === 'string') homes[k] = v;
+  }
+  const floors = normalizeFloors(c.floors);
+  const floorMap = {};
+  if (plainObj(c.floorMap)) {
+    for (const [k, v] of Object.entries(c.floorMap)) if (typeof v === 'string' && floors.some((f) => f.id === v)) floorMap[k] = v;
   }
   return {
     port: Number.isInteger(c.port) ? num(c.port, 1, 65535, DEFAULT_PORT) : DEFAULT_PORT,
@@ -45,6 +78,9 @@ export function normalizeConfig(raw) {
     kidCommits: num(c.kidCommits, 0, 1e9, DEFAULTS.kidCommits),
     lang: ['auto', 'ko', 'en'].includes(c.lang) ? c.lang : 'auto',
     roster: normalizeRoster(c.roster),
+    floors,
+    floorMap,
+    defaultFloor: floors.some((f) => f.id === c.defaultFloor) ? c.defaultFloor : floors[0].id,
   };
 }
 
@@ -87,6 +123,6 @@ export function demoPort(cfg = loadConfig()) {
 
 /** setup 이 처음 만들어 두는 config.json 내용 */
 export function defaultConfigText() {
-  const { port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster } = DEFAULTS;
-  return JSON.stringify({ port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster }, null, 2) + '\n';
+  const { port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor } = DEFAULTS;
+  return JSON.stringify({ port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor }, null, 2) + '\n';
 }

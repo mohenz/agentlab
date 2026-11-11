@@ -55,7 +55,7 @@
   const L = OfficeLife.L;
   const t = (k, v) => I18N.t(k, v);
   const $ = id => document.getElementById(id);
-  const st = { imgs: null, loaded: false, failImg: false, failNet: false, cells: new Map(), raf: 0, last: 0,
+  const st = { floor: null, floors: null, imgs: null, loaded: false, failImg: false, failNet: false, cells: new Map(), raf: 0, last: 0,
                people: null, meta: null, sel: null, view: { s: 1, ox: 0, oy: 0, dpr: 1, small: false }, parts: [] };
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -64,7 +64,7 @@
   function loadImages() {
     if (st.imgs) return;
     st.imgs = {};
-    const names = ["floor", "chairs", ...SHEETS.flatMap(s => [s, s + "-key"])];
+    const names = [...new Set(OFFICE_FLOORS.map(f => f.art)), ...SHEETS.flatMap(s => [s, s + "-key"])];
     let left = names.length;
     for (const n of names) {
       const img = new Image();
@@ -177,7 +177,7 @@
     if (!pose.startsWith("sit")) shadow(ctx, p.x, p.y, stand * 0.21 * (1 + dy / 60));
     // 의자의 꼬마는 방석을 깔고 앉은 듯 올린다 — 안 그러면 등받이에 모자만 보인다. 앞줄 의자일수록 커서(원근)
     // 의자마다 올리는 양(chairs[].kid)을 그림 만들 때 재 둔다: 어느 줄에서나 머리가 비슷하게 나온다.
-    const chair = p.kid && !p.path.length && p.act?.chair >= 0 ? A.chairs?.[p.act.chair] : null;
+    const chair = p.kid && !p.path.length && p.act?.chair >= 0 ? OFFICE_CHAIRS[p.act.chair] : null;
     if (chair) dy -= chair.kid || 0;
     p.box = sprite(ctx, p.species, p.color, pose, p.x + dx, p.y + dy, stand, p.face,
                    { alpha: p.alpha, sx: sx * turnSx(p, t), sy, tilt });
@@ -340,7 +340,7 @@
     if (!st.loaded) return;
     ctx.setTransform(v.s * v.dpr, 0, 0, v.s * v.dpr, v.ox * v.dpr, v.oy * v.dpr);
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(st.imgs.floor, 0, 0, OFFICE_W, OFFICE_H);
+    ctx.drawImage(st.imgs[floorInfo(st.floor).art], 0, 0, OFFICE_W, OFFICE_H);
     drawRing(ctx, false);
     // 깊이 순서(발끝 y)대로 — 책상·회의실 의자 등받이도 끼워 넣는다: 앉은 사람(발끝 = 등받이 아래끝 - 2)보다 나중,
     // 의자 앞 통로를 지나는 사람보다 먼저. 그래서 앉은 사람은 허리 아래가 등받이에 가려진다.
@@ -367,11 +367,9 @@
       }
     }
   }
-  const CHAIRS = (A.chairs || []).map(c => ({ chair: c.box, y: c.seat[1] + OfficeLife.SIT_DESK + 1 }));
-  function drawChair(ctx, c) {
-    const [x, y, w, h] = c.chair;
-    ctx.drawImage(st.imgs.chairs, x, y, w, h, x, y, w, h);
-  }
+  // 새 그림은 앉은 자세에 의자가 들어 있어 배경 의자를 따로 덧그리지 않는다(깊이 순서에 끼울 의자 없음)
+  const CHAIRS = [];
+  function drawChair() {}
   function particles() {
     const t = L.t;
     for (const p of L.people.values()) {
@@ -441,7 +439,10 @@
       st.people = people;
       st.meta = { hooks: body.hooks !== false, demo: !!body.demo };
       st.failNet = false;
-      OfficeLife.sync(people.map(toLife));
+      st.floors = floorList(body.floors, people);
+      if (!st.floor) setFloor(initialFloor(), true);
+      OfficeLife.sync(people.filter(p => floorOf(p) === st.floor).map(toLife));
+      renderFloors();
       if (st.sel && !people.some(p => p.id === st.sel)) st.sel = null;     // 퇴근한 사람은 고르기 해제
       OfficePanel.collect(people, OfficeLife.drainEvents());
       OfficePanel.render(people, st.sel);
@@ -470,6 +471,50 @@
     box.hidden = !notes.length;
   }
 
+  // ---------- 층 — 층마다 그림과 월드(통로·자리)가 다르다. 사람은 서버가 준 floor 로 그 층에서만 산다 ----------
+  const floorInfo = id => OFFICE_FLOORS.find(f => f.id === id) || OFFICE_FLOORS[0];
+  const floorOf = p => (OFFICE_FLOORS.some(f => f.id === p.floor) && (st.floors || []).some(f => f.id === p.floor) ? p.floor : (st.floors?.[0]?.id || OFFICE_FLOORS[0].id));
+  // 서버가 층 목록을 안 주면(옛 서버) 층 하나짜리로 — 모든 사람이 첫 층에 선다
+  function floorList(list, people) {
+    const ok = Array.isArray(list) ? list.filter(f => f && typeof f.id === "string" && OFFICE_FLOORS.some(x => x.id === f.id)) : [];
+    if (ok.length) return ok.map(f => ({ id: f.id, label: String(f.label || f.id), count: Number(f.count) || 0 }));
+    return [{ id: OFFICE_FLOORS[0].id, label: t("floor.default"), count: (people || []).length }];
+  }
+  function initialFloor() {
+    const ids = (st.floors || []).map(f => f.id);
+    const want = Q.get("floor") || (() => { try { return localStorage.getItem("office.floor"); } catch { return null; } })();
+    if (want && ids.includes(want)) return want;
+    return (st.floors.find(f => f.count > 0) || st.floors[0]).id;
+  }
+  function setFloor(id, first) {
+    if (st.floor === id && !first) return;
+    st.floor = id;
+    officeUseWorld(floorInfo(id).world);
+    OfficeLife.reset();
+    st.parts = [];
+    try { localStorage.setItem("office.floor", id); } catch { /* 저장소를 못 쓰면 기억만 못 한다 */ }
+    if (!first) {
+      if (st.people) OfficeLife.sync(st.people.filter(p => floorOf(p) === id).map(toLife));
+      renderFloors();
+    }
+  }
+  function renderFloors() {
+    const nav = $("floors");
+    if (!nav || !st.floors) return;
+    nav.hidden = st.floors.length < 2;
+    nav.replaceChildren(...st.floors.map(f => {
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.id = f.id;
+      b.className = "floor" + (f.id === st.floor ? " on" : "");
+      b.setAttribute("aria-pressed", f.id === st.floor ? "true" : "false");
+      const name = document.createElement("span"); name.textContent = f.label;
+      const n = document.createElement("small"); n.textContent = String(f.count);
+      b.append(name, n);
+      b.onclick = () => { st.sel = null; setFloor(f.id); OfficePanel.render(st.people || [], st.sel); };
+      return b;
+    }));
+  }
+
   // ---------- 고르기 — 캐릭터나 목록을 누르면 그 사람을 펼쳐 보이고 발밑에 고리 ----------
   function hit(ev) {
     const r = $("office-canvas").getBoundingClientRect();
@@ -483,6 +528,8 @@
   }
   // 같은 사람을 다시 누르면 해제. keep = 해제하지 않고 고르기만(로그 줄을 누를 때)
   function select(id, keep) {
+    const who = id && (st.people || []).find(p => p.id === id);
+    if (who && floorOf(who) !== st.floor) setFloor(floorOf(who));     // 다른 층 사람을 누르면 그 층으로 간다
     st.sel = id && (keep || id !== st.sel) ? id : null;
     OfficePanel.render(st.people || [], st.sel, { focus: !!st.sel });
   }
@@ -497,7 +544,7 @@
 
   // 시험·점검용 — 지금 사무실에 누가 어디서 무엇을 하는지(화면 좌표 포함)
   window.officeDebug = () => [...L.people.values()].map(p => ({
-    id: p.id, name: p.name, species: p.species, color: p.color, kid: !!p.kid, status: p.status, home: p.home,
+    id: p.id, name: p.name, floor: st.floor, species: p.species, color: p.color, kid: !!p.kid, status: p.status, home: p.home,
     act: p.path.length ? "walk" : p.act?.work ? "desk" : p.act?.hop ? "ask" : (p.act?.pose || "idle"),
     pose: p.box ? poseOf(p, L.t) : null, bubble: p.bubble?.text || "", selected: p.id === st.sel,
     minis: [...L.minis.values()].filter(m => m.owner === p.id && (m.state === "wait" || m.state === "in")).length,
@@ -514,7 +561,7 @@
     for (const b of document.querySelectorAll("#lang button")) b.onclick = () => I18N.setLang(b.dataset.lang);
     I18N.onChange(() => {
       applyText();
-      if (st.people) OfficeLife.sync(st.people.map(toLife));   // 말풍선 글도 새 언어로
+      if (st.people) OfficeLife.sync(st.people.filter(p => floorOf(p) === st.floor).map(toLife));   // 말풍선 글도 새 언어로
       OfficePanel.relabel();
       bar();
     });

@@ -406,9 +406,14 @@ const OfficeLife = (() => {
     m.byeAt = L.t + delay;
   }
 
+  // 층을 바꿀 때 — 사람·자리·수다를 모두 비운다(새 층의 사람은 다음 sync 에서 통로 점에 바로 놓인다)
+  function reset() {
+    L.people.clear(); L.minis.clear(); L.desks.clear(); L.taken.clear(); L.chats.clear(); L.greeted.clear();
+    L.events.length = 0; L.synced = false;
+  }
+
   // ---------- 데이터가 오면 들이고 내보낸다 ----------
   // list = [{ id, name, status, ask, kid, home, doing(글), subCount, subs:[{id,type,desc,doing(글)}], commits, path }]
-  const START_NODES = ["inner", "lob2", "c1", "c3", "S2", "S3", "rv1", "st"];
   function sync(list) {
     const seen = new Set();
     for (const d of list) {
@@ -434,7 +439,7 @@ const OfficeLife = (() => {
         } else {                                     // 첫 화면 — 통로 점 하나에 세워 두고 할 일 자리로 바로 놓는다.
           // (0,0)에서 시작하면 걷기 없는 첫 할 일(기지개·빈자리 없음)일 때 그림 왼쪽 위 바깥에 서 있다가
           // 거기서 벽을 넘어 걸어 들어왔다
-          [p.x, p.y] = OFFICE_NODES[pick(START_NODES)];
+          [p.x, p.y] = OFFICE_NODES[pick(OFFICE_START)];
           choose(p); snap(p);
         }
       } else if (back) {
@@ -587,6 +592,6 @@ const OfficeLife = (() => {
     }
   }
 
-  return { L, SIT_DESK, sync, update, cut, nearest, route, colorOf, speciesOf, modeOf, blocked, onFloor,
+  return { L, SIT_DESK, sync, reset, update, cut, nearest, route, colorOf, speciesOf, modeOf, blocked, onFloor,
            drainEvents: () => L.events.splice(0, L.events.length) };
 })();

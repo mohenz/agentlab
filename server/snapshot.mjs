@@ -108,6 +108,23 @@ function homeOf(homes, name, key) {
   return null;
 }
 
+/** 층 — config 의 floorMap(폴더 이름 또는 경로 → 층 id)이 정하고, 없으면 defaultFloor */
+export function floorOf(cfg, name, key) {
+  for (const [k, id] of Object.entries(cfg.floorMap || {})) if (nameKey(k) === nameKey(name) || pathKey(k) === key) return id;
+  return cfg.defaultFloor;
+}
+
+/** 층별 인원 — 화면의 층 목록이 쓴다(없는 층 id 의 사람은 기본 층으로 센다) */
+export function floorSummary(cfg, people) {
+  const ids = new Set(cfg.floors.map((f) => f.id));
+  const count = new Map(cfg.floors.map((f) => [f.id, 0]));
+  for (const p of people) {
+    if (!ids.has(p.floor)) p.floor = cfg.defaultFloor;
+    count.set(p.floor, count.get(p.floor) + 1);
+  }
+  return cfg.floors.map((f) => ({ id: f.id, label: f.label, count: count.get(f.id) }));
+}
+
 /** 살아 있는 세션들 — 훅 카드 먼저, 카드 없는 최근 대화는 대체 모드로 */
 function collectSessions(cfg, now, starts) {
   const cards = readCards();
@@ -188,6 +205,7 @@ export async function buildSnapshot(opts = {}) {
       commits,
       kid: commits !== null && commits < cfg.kidCommits,
       home: homeOf(cfg.homes, base, key),
+      floor: floorOf(cfg, base, key),
       subs: subs.slice(0, MAX_SUBS),
       subCount: subs.length,
       doing: latest.info.doing,
@@ -204,12 +222,14 @@ export async function buildSnapshot(opts = {}) {
   // 상주 에이전트(config.json 의 roster) — 이름 겹침 정리 뒤에 얹어야 살아 있는 사람 이름과 비교가 맞는다
   applyRoster(people, cfg.roster, { running: opts.running, hide: (n) => matches(cfg.hide, n, pathKey(n)) });
   people.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const floors = floorSummary(cfg, people);
 
   return {
     version: API_VERSION,
     now: new Date(now).toISOString(),
     hooks: cardCount > 0 || hooksInstalled(),
     demo: false,
+    floors,
     people,
   };
 }
