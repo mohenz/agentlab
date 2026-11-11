@@ -139,8 +139,12 @@
       if (Math.abs(p.vx || 0) > 0.5) turn(p, p.vx > 0 ? 1 : -1, t);
       return walkPose(p, false);
     }
+    // 의자에 앉아 오래 졸면 고개를 떨군다(새 그림 sleepDesk) — 앞을 보고 앉는 자리(안락의자·소파)만
+    if (p.act?.sleepy && p.act.pose === "sitFront" && t - (p.arrivedAt || 0) > 12) return "sleepDesk";
     return p.act?.pose || "stand";
   }
+  // 의자에 앉은 모습이 그림에 들어 있는 자세 — 발밑 그림자를 따로 그리지 않고 숨 쉬듯 움직인다
+  const isSitting = pose => pose.startsWith("sit") || pose === "sleepDesk" || pose === "slump" || pose === "raiseHand";
 
   function drawPerson(ctx, p) {
     const t = L.t, stand = standOf(p), ph = p.phase, pose = poseOf(p, t);
@@ -155,7 +159,7 @@
       tilt = Math.sin(t * 6 + ph) * 0.06;
     } else if (pose === "sitLol" || pose === "phLol") {              // 휴대폰 보다 킥킥 — 작게 들썩
       dy = -Math.abs(Math.sin(t * 13 + ph)) * 1.8; tilt = Math.sin(t * 6.5 + ph) * 0.04;
-    } else if (pose.startsWith("sit")) {                              // 앉아서(휴대폰 포함) — 느릿한 숨 + 갸웃
+    } else if (isSitting(pose)) {                                     // 앉아서(휴대폰 포함) — 느릿한 숨 + 갸웃
       ({ sx, sy } = jelly(t + ph, 1.8, 0.025)); tilt = Math.sin(t * 0.9 + ph) * 0.035;
     } else if (pose === "phScroll" || pose === "phText") {            // 서서 휴대폰 — 고개 까딱, 엄지 톡톡
       tilt = Math.sin(t * 1.3 + ph) * 0.025; dy = -Math.abs(Math.sin(t * 5 + ph)) * 0.6;
@@ -174,7 +178,7 @@
     } else {
       tilt = Math.sin(t * 1.7 + ph) * 0.035;
     }
-    if (!pose.startsWith("sit")) shadow(ctx, p.x, p.y, stand * 0.21 * (1 + dy / 60));
+    if (!isSitting(pose)) shadow(ctx, p.x, p.y, stand * 0.21 * (1 + dy / 60));
     // 의자의 꼬마는 방석을 깔고 앉은 듯 올린다 — 안 그러면 등받이에 모자만 보인다. 앞줄 의자일수록 커서(원근)
     // 의자마다 올리는 양(chairs[].kid)을 그림 만들 때 재 둔다: 어느 줄에서나 머리가 비슷하게 나온다.
     const chair = p.kid && !p.path.length && p.act?.chair >= 0 ? OFFICE_CHAIRS[p.act.chair] : null;

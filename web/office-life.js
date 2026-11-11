@@ -311,8 +311,9 @@ const OfficeLife = (() => {
       const n = OFFICE_NODES[pick(Object.keys(OFFICE_NODES).filter(k => !["out", "door"].includes(k)))];
       const at = s ? s.at : [n[0] + rnd(-10, 10), n[1] + rnd(-6, 6)];
       const look = Math.random() < 0.35;      // 멈춰 서서 휴대폰 확인
+      const doc = look && Math.random() < 0.35;      // 서류를 꺼내 읽기(새 그림 readDoc)
       run(p, [{ go: at, via: s?.via },
-              { pose: look ? "phScroll" : "stand", dur: look ? rnd(4, 7) : rnd(2, 4), face: pick([1, -1]),
+              { pose: doc ? "readDoc" : look ? "phScroll" : "stand", dur: look ? rnd(4, 7) : rnd(2, 4), face: pick([1, -1]),
                 say: look && Math.random() < 0.4 ? () => line("scroll") : null, sayKind: "think" },
               { pose: "think", dur: 1.6, say: Math.random() < 0.4 ? () => line("think") : null, sayKind: "think" }]);
       return true;

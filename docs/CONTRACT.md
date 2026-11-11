@@ -63,6 +63,7 @@ PermissionRequest 는 승인 창이 뜨는 즉시, Notification(permission_promp
   "version": 1,
   "now": "2026-10-22T01:02:03.456Z",
   "floors": [ { "id": "work1", "label": "업무층 1", "count": 3 } ],   // 층 목록과 층별 인원(추가 필드 — 옛 화면은 무시)
+  "quota": [ { "name": "Claude 주", "period": "주간", "remaining": 37, "resetAt": "ISO|null", "checkedAt": "ISO|null" } ],  // quota.json(수동 입력)
   "hooks": true,
   "demo": false,
   "people": [ Person, … ]
@@ -86,6 +87,9 @@ PermissionRequest 는 승인 창이 뜨는 즉시, Notification(permission_promp
   "kid": false,                    // commits != null && commits < 50 → 70% 꼬마
   "home": null,                    // "server" 면 서버실에서 일한다(설정 homes 로 지정). 그 밖엔 null
   "floor": "work1",                // 사는 층 id(설정 floorMap·roster.floor, 없으면 defaultFloor) — 화면은 그 층 그림에서만 보여 준다
+  "compactions": 0,                // 이 프로젝트 세션들이 압축(PreCompact)한 횟수 합 — 훅이 카드의 compactCount 로 누적
+  "context": 45,                   // 마지막 답이 읽은 컨텍스트 ÷ contextWindow, 0~100 정수. 모르면 null
+  "account": "주",                 // 설정 accountMap·roster.account 의 짧은 이름. 없으면 null
   "subs": [ { "id": "a1b2", "type": "Explore", "desc": "find auth code", "doing": Act|null } ],  // 최대 12
   "subCount": 1,                   // 실제로 일하는 서브에이전트 수(12 초과 가능)
   "doing": Act|null,               // 지금 하는 일(가장 최근 활동)
@@ -131,6 +135,8 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
 - `autoStart` — SessionStart 훅이 서버가 꺼져 있으면 백그라운드로 띄운다(재부팅 뒤에도 Claude 만 켜면 화면이 산다).
 - `homes` — 프로젝트 이름(또는 경로) → "server" 면 그 캐릭터는 서버실에 서서 일한다.
 - `hide` — 사무실에 안 띄울 프로젝트 이름·경로.
+- `contextWindow` — 컨텍스트 창 크기(토큰, 기본 200000). 1M 컨텍스트 모델을 쓰면 `1000000`. 이름표의 `45%` 가 이 값을 기준으로 한다.
+- `accountMap` — 프로젝트 이름(또는 경로) → 짧은 계정 이름(12자, 예: "주"·"부"). 이름표 끝에 붙는다.
 - `floors` — 층 목록(`id` 영문·숫자·`_-` 20자, `label` 30자, 최대 12층). 기본은 `work1·work2·work3`(업무층 3색)·`knowledge`(지식층)·`suite`(대표실).
   화면이 그림을 가진 id(`web/office-world.js` 의 `OFFICE_FLOORS`)만 층으로 보여 준다.
 - `floorMap` — 프로젝트 이름(또는 경로) → 층 id. 목록에 없는 id 는 버린다. `defaultFloor` — 매핑이 없는 프로젝트가 사는 층(기본 첫 층).
@@ -141,9 +147,33 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
   - `match` — 살아 있는 사람(프로젝트 폴더 이름 또는 경로)과 맞으면 그 사람의 이름·역할을 바꾼다(새 캐릭터를 만들지 않는다). 한 사람은 한 에이전트만 받는다.
   - 맞는 사람이 없으면 책상에 앉은(`rest`) 캐릭터를 올린다: `id` = `roster:<name>`, `source` = `"roster"`, `sessions` = 0, `path` = "".
   - `process` — 실행 파일 이름(예: `opencode.exe`). 떠 있으면 `online: true`, 없으면 `false`(꺼져 있어도 사무실에는 앉아 있다). 안 적으면 항상 켜짐.
-  - `floor` — 이 에이전트가 사는 층 id(안 적으면 `floorMap`·`defaultFloor` 규칙).
+  - `floor` — 이 에이전트가 사는 층 id(안 적으면 `floorMap`·`defaultFloor` 규칙). `account` — 이름표에 붙일 짧은 계정 이름(12자).
   - `hide` 에 든 이름은 올리지 않는다.
   Person 에 `role`·`tool`·`roster: true`·`online`(상주 에이전트일 때), 이름을 바꾼 경우 원래 프로젝트 이름 `project` 가 더해진다.
+
+### 5-1. 계정 남은 한도 (`~/.claude-office/quota.json`, 없어도 됨)
+
+ChatGPT·Grok·Claude 구독의 남은 한도는 공식 조회 API 가 없어 **자동으로 읽지 못한다.** 사용자가 직접 적고, 화면은 확인한 시각과 함께 "마지막 확인값"으로 보여 준다(6시간 넘으면 `*마지막 확인값`).
+
+```json
+[ { "name": "Claude 주", "period": "주간", "remaining": 37, "resetAt": "2026-11-15T00:00:00+09:00", "checkedAt": "2026-11-11T09:00:00+09:00" } ]
+```
+
+- `name`(24자)·`remaining`(남은 %, 0~100 으로 맞춤) 필수. `period`(12자)·`resetAt`·`checkedAt`(ISO) 은 선택. 최대 12개. 파일이 없거나 깨지면 빈 목록(카드가 안 나온다).
+
+### 5-2. 외부 에이전트 (Codex 등 — `~/.claude-office/external/<id>.json`)
+
+Claude Code 가 아닌 도구도 카드만 쓰면 사무실에 올라온다. 같은 프로젝트 폴더의 Claude 세션이 있으면 한 사람으로 묶인다(상태 우선순위 `decision > working > rest`).
+
+```json
+{ "id": "codex-1", "name": "", "tool": "Codex", "cwd": "D:/work/my-app", "status": "working", "message": "명령 승인 기다림", "updatedAt": "ISO" }
+```
+
+- `id`·`cwd` 필수, `status` = `working` | `decision` | `rest`(모르는 값은 rest). 30분 넘게 소식이 없으면 사무실에서 빠진다. Person 은 `source: "external"`, `tool` 이 붙는다.
+- 쓰는 법: `node hooks/external-notify.mjs --id codex-1 --tool Codex --cwd <폴더> --status working|decision|rest [--message ...]`, 퇴근은 `--remove`.
+- **Codex CLI**: `~/.codex/config.toml` 에 `notify = ["node", "<저장소>/hooks/external-notify.mjs", "--codex"]` 를 넣으면 턴이 끝날 때마다 쉬는 중 카드를 쓴다.
+  일하는 중은 `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`(오늘·어제 폴더) 중 2분 안에 바뀐 파일이 있고 첫 줄에서 작업 폴더(`payload.cwd`)를 읽을 수 있을 때 서버가 알아본다.
+  ※ 이 두 가지(notify 인자 모양, 세션 파일의 첫 줄 모양)는 문서·기억에 근거한 것이고 **실제 Codex 기록으로 확인하지 못했다**(개발 PC 에 Codex 기록이 없음). 안 맞으면 `server/external.mjs` 의 `cwdFromFirstLine` 한 곳만 고치면 된다.
 
 ## 6. 생존 판정 (세션이 아직 켜져 있나)
 

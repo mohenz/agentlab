@@ -10,6 +10,7 @@ import { LOG_N, MAX_SUBS, oneLine, readTranscript, runningSubagents } from './ac
 import { installedEvents } from './hooks-config.mjs';
 import { applyRoster } from './roster.mjs';
 import { loadQuota } from './quota.mjs';
+import { codexSessions, readExternal } from './external.mjs';
 
 export const API_VERSION = 1;
 const GIT_TTL_MS = 10 * 60 * 1000; // 루트·커밋 수는 10분 캐시 — git 을 3초마다 두드리지 않게
@@ -171,6 +172,13 @@ function collectSessions(cfg, now, starts) {
       out.push({ cwd: info.cwd, status: transcriptStatus(info.last, t.mtimeMs, now), ask: '', at: t.mtimeMs, source: 'transcript', transcript: t.file, info });
     }
   }
+  // 외부 에이전트(Codex 등) — external 카드와 Codex 세션 파일. 같은 프로젝트 폴더면 Claude 세션과 한 사람으로 묶인다.
+  for (const c of [...readExternal(now), ...codexSessions(now)]) {
+    out.push({
+      cwd: c.cwd, status: c.status, ask: c.status === 'decision' ? c.message : '', at: c.at, source: 'external', tool: c.tool,
+      transcript: null, info: { doing: null, log: [], last: null, cwd: c.cwd, ctx: 0 }, compactions: 0,
+    });
+  }
   return { sessions: out, cardCount: cards.length };
 }
 
@@ -215,7 +223,8 @@ export async function buildSnapshot(opts = {}) {
       pending: asks.length,
       ask: asks.length ? asks[0].ask : '',
       sessions: items.length,
-      source: items.some((s) => s.source === 'hook') ? 'hook' : 'transcript',
+      source: items.some((s) => s.source === 'hook') ? 'hook' : items.some((s) => s.source === 'transcript') ? 'transcript' : 'external',
+      ...(items.some((s) => s.tool) ? { tool: items.find((s) => s.tool).tool } : {}),
       commits,
       kid: commits !== null && commits < cfg.kidCommits,
       home: homeOf(cfg.homes, base, key),
