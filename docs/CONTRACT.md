@@ -62,6 +62,7 @@ PermissionRequest 는 승인 창이 뜨는 즉시, Notification(permission_promp
 {
   "version": 1,
   "now": "2026-10-22T01:02:03.456Z",
+  "floors": [ { "id": "work1", "label": "업무층 1", "count": 3 } ],   // 층 목록과 층별 인원(추가 필드 — 옛 화면은 무시)
   "hooks": true,
   "demo": false,
   "people": [ Person, … ]
@@ -84,6 +85,7 @@ PermissionRequest 는 승인 창이 뜨는 즉시, Notification(permission_promp
   "commits": 123,                  // git rev-list --count HEAD (10분 캐시), 못 세면 null
   "kid": false,                    // commits != null && commits < 50 → 70% 꼬마
   "home": null,                    // "server" 면 서버실에서 일한다(설정 homes 로 지정). 그 밖엔 null
+  "floor": "work1",                // 사는 층 id(설정 floorMap·roster.floor, 없으면 defaultFloor) — 화면은 그 층 그림에서만 보여 준다
   "subs": [ { "id": "a1b2", "type": "Explore", "desc": "find auth code", "doing": Act|null } ],  // 최대 12
   "subCount": 1,                   // 실제로 일하는 서브에이전트 수(12 초과 가능)
   "doing": Act|null,               // 지금 하는 일(가장 최근 활동)
@@ -121,13 +123,17 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
 ```json
 { "port": 4777, "autoStart": true, "homes": { "my-main-project": "server" },
   "hide": ["scratch"], "fallbackMinutes": 20, "staleHours": 6, "kidCommits": 50, "lang": "auto",
-  "roster": [ { "name": "Rick Deckard", "role": "전략 PMO", "tool": "OpenCode", "process": "opencode.exe" } ] }
+  "roster": [ { "name": "Rick Deckard", "role": "전략 PMO", "tool": "OpenCode", "process": "opencode.exe", "floor": "suite" } ],
+  "floors": [ { "id": "work1", "label": "업무층 1" } ], "floorMap": { "my-main-project": "work2" }, "defaultFloor": "work1" }
 ```
 
 - `port` — 서버 포트(환경변수 `CLAUDE_OFFICE_PORT` 가 우선). 서버는 **127.0.0.1 에만** 붙는다.
 - `autoStart` — SessionStart 훅이 서버가 꺼져 있으면 백그라운드로 띄운다(재부팅 뒤에도 Claude 만 켜면 화면이 산다).
 - `homes` — 프로젝트 이름(또는 경로) → "server" 면 그 캐릭터는 서버실에 서서 일한다.
 - `hide` — 사무실에 안 띄울 프로젝트 이름·경로.
+- `floors` — 층 목록(`id` 영문·숫자·`_-` 20자, `label` 30자, 최대 12층). 기본은 `work1·work2·work3`(업무층 3색)·`knowledge`(지식층)·`suite`(대표실).
+  화면이 그림을 가진 id(`web/office-world.js` 의 `OFFICE_FLOORS`)만 층으로 보여 준다.
+- `floorMap` — 프로젝트 이름(또는 경로) → 층 id. 목록에 없는 id 는 버린다. `defaultFloor` — 매핑이 없는 프로젝트가 사는 층(기본 첫 층).
 - `lang` — "auto" | "ko" | "en". 화면에 그대로 전달(`GET /api/config`).
 - `roster` — **상주 에이전트**. Claude 세션이 없어도 사무실에 앉아 있게 올릴 에이전트(예: OpenCode·Antigravity 로 도는 페르소나) 목록.
   항목은 `{ "name": "Rick Deckard", "role": "전략 PMO", "tool": "OpenCode", "match": "", "process": "opencode.exe" }`.
@@ -135,6 +141,7 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
   - `match` — 살아 있는 사람(프로젝트 폴더 이름 또는 경로)과 맞으면 그 사람의 이름·역할을 바꾼다(새 캐릭터를 만들지 않는다). 한 사람은 한 에이전트만 받는다.
   - 맞는 사람이 없으면 책상에 앉은(`rest`) 캐릭터를 올린다: `id` = `roster:<name>`, `source` = `"roster"`, `sessions` = 0, `path` = "".
   - `process` — 실행 파일 이름(예: `opencode.exe`). 떠 있으면 `online: true`, 없으면 `false`(꺼져 있어도 사무실에는 앉아 있다). 안 적으면 항상 켜짐.
+  - `floor` — 이 에이전트가 사는 층 id(안 적으면 `floorMap`·`defaultFloor` 규칙).
   - `hide` 에 든 이름은 올리지 않는다.
   Person 에 `role`·`tool`·`roster: true`·`online`(상주 에이전트일 때), 이름을 바꾼 경우 원래 프로젝트 이름 `project` 가 더해진다.
 
