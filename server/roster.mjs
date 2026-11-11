@@ -76,7 +76,7 @@ export function applyRoster(people, roster, opts = {}) {
     }
     people.push({
       id: `roster:${entry.name}`, name: entry.name, path: '', status: 'rest', pending: 0, ask: '', sessions: 0,
-      source: 'roster', commits: null, kid: false, home: null, subs: [], subCount: 0, doing: null, log: [], ...meta,
+      source: 'roster', commits: null, kid: false, home: null, compactions: 0, context: null, account: null, subs: [], subCount: 0, doing: null, log: [], ...meta,
     });
   }
   return people;
