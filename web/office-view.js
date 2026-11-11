@@ -245,7 +245,8 @@
     for (const p of L.people.values()) {
       if (!p.box || p.alpha < 0.3) continue;
       const [x, y] = scr(p.x, p.feet);
-      tags.push({ p, x, y: y + 3, w: ctx.measureText(p.name).width + 18, h: th });
+      const extra = tagText(p.tag);
+      tags.push({ p, x, y: y + 3, extra, w: ctx.measureText(p.name).width + 18 + (extra ? ctx.measureText(extra).width + 8 : 0), h: th });
     }
     tags.sort((a, b) => a.y - b.y);
     const placed = [];
@@ -265,7 +266,24 @@
       ctx.beginPath(); ctx.arc(lx + 8, g.y + g.h / 2 + 0.5, 3, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = on ? inkOn(g.p.color) : "#1E2622"; ctx.textBaseline = "middle"; ctx.font = `${on ? 800 : 600} ${fs}px ${FONT}`;
       ctx.fillText(g.p.name, lx + 14, g.y + g.h / 2 + 1);
+      if (g.extra) {                          // 이름 뒤 — 컨텍스트 사용률 · 압축 횟수 · ⚑(승인 대기) · 계정
+        const nameW = ctx.measureText(g.p.name).width;
+        ctx.font = `600 ${fs - 1}px ${FONT}`;
+        ctx.fillStyle = on ? inkOn(g.p.color) : "#5B6770";
+        ctx.fillText(g.extra, lx + 14 + nameW + 6, g.y + g.h / 2 + 1);
+        ctx.font = `600 ${fs}px ${FONT}`;
+      }
     }
+  }
+  // 이름표 뒤에 붙일 짧은 글 — 45% · 압축5 · ⚑ · 부 (값이 없는 칸은 뺀다)
+  function tagText(tag) {
+    if (!tag) return "";
+    const parts = [];
+    if (tag.ctx != null) parts.push(`${tag.ctx}%`);
+    if (tag.compact) parts.push(t("tag.compact", { n: tag.compact }));
+    if (tag.ask) parts.push("⚑");
+    if (tag.account) parts.push(tag.account);
+    return parts.join(" · ");
   }
   function bubbles(ctx) {
     const items = [], fs = st.view.small ? 11 : 13;
@@ -427,6 +445,7 @@
   const toLife = d => ({
     id: d.id, name: d.name, status: d.status, ask: d.ask, kid: d.kid, home: d.home, commits: d.commits, path: d.path,
     doing: I18N.act(d.doing), subCount: d.subCount || 0,
+    tag: { ctx: Number.isFinite(d.context) ? d.context : null, compact: d.compactions > 0 ? d.compactions : 0, ask: d.pending > 0 || d.status === "decision", account: d.account || "" },
     subs: d.subs.map(s => ({ id: String(s.id), type: s.type || "", desc: s.desc || "", doing: I18N.act(s.doing) })),
   });
   async function load() {
@@ -443,9 +462,11 @@
       if (!st.floor) setFloor(initialFloor(), true);
       OfficeLife.sync(people.filter(p => floorOf(p) === st.floor).map(toLife));
       renderFloors();
+      st.quota = Array.isArray(body.quota) ? body.quota : [];
       if (st.sel && !people.some(p => p.id === st.sel)) st.sel = null;     // 퇴근한 사람은 고르기 해제
       OfficePanel.collect(people, OfficeLife.drainEvents());
       OfficePanel.render(people, st.sel);
+      OfficePanel.cards(people, st.quota);
     } catch {
       st.failNet = true;
     }
@@ -563,6 +584,7 @@
       applyText();
       if (st.people) OfficeLife.sync(st.people.filter(p => floorOf(p) === st.floor).map(toLife));   // 말풍선 글도 새 언어로
       OfficePanel.relabel();
+      if (st.people) OfficePanel.cards(st.people, st.quota);
       bar();
     });
     OfficePanel.onPick((id, keep) => select(id, keep));

@@ -204,3 +204,16 @@ test('pid 는 세션당 한 번 — 직전 카드의 살아 있는 pid 를 이�
   assert.equal(card(s).pid, process.pid);
   assert.equal(card(s).pidStart, 'X');
 });
+
+test('압축 횟수: PreCompact 마다 1 올라가고, 다른 이벤트로 카드가 다시 써져도 유지된다', async () => {
+  const s = sid();
+  await ev(s, 'UserPromptSubmit');
+  assert.equal(card(s).compactCount, undefined); // 아직 압축 없음
+  await ev(s, 'PreCompact', { trigger: 'auto' });
+  assert.equal(card(s).compactCount, 1);
+  await ev(s, 'Stop');
+  assert.equal(card(s).compactCount, 1); // Stop 으로 카드를 다시 써도 안 사라진다
+  await ev(s, 'PreCompact', { trigger: 'manual' });
+  await ev(s, 'UserPromptSubmit');
+  assert.equal(card(s).compactCount, 2);
+});

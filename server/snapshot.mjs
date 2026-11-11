@@ -9,6 +9,7 @@ import { cleanupCards, mtimeOf, readCards, recentTranscripts, transcriptFor } fr
 import { LOG_N, MAX_SUBS, oneLine, readTranscript, runningSubagents } from './activity.mjs';
 import { installedEvents } from './hooks-config.mjs';
 import { applyRoster } from './roster.mjs';
+import { loadQuota } from './quota.mjs';
 
 export const API_VERSION = 1;
 const GIT_TTL_MS = 10 * 60 * 1000; // 루트·커밋 수는 10분 캐시 — git 을 3초마다 두드리지 않게
@@ -114,6 +115,18 @@ export function floorOf(cfg, name, key) {
   return cfg.defaultFloor;
 }
 
+/** 컨텍스트 사용률(0~100 정수). 값을 모르면 null */
+export function contextPct(ctx, windowSize) {
+  if (!Number.isFinite(ctx) || ctx <= 0 || !(windowSize > 0)) return null;
+  return Math.min(100, Math.round((ctx / windowSize) * 100));
+}
+
+/** 계정 이름표 — config 의 accountMap(폴더 이름 또는 경로 → 짧은 이름). 없으면 null */
+export function accountOf(cfg, name, key) {
+  for (const [k, label] of Object.entries(cfg.accountMap || {})) if (nameKey(k) === nameKey(name) || pathKey(k) === key) return label;
+  return null;
+}
+
 /** 층별 인원 — 화면의 층 목록이 쓴다(없는 층 id 의 사람은 기본 층으로 센다) */
 export function floorSummary(cfg, people) {
   const ids = new Set(cfg.floors.map((f) => f.id));
@@ -147,6 +160,7 @@ function collectSessions(cfg, now, starts) {
       source: 'hook',
       transcript,
       info,
+      compactions: Number.isInteger(card.compactCount) && card.compactCount > 0 ? card.compactCount : 0,
     });
   }
   if (cfg.fallbackMinutes > 0) {
@@ -206,6 +220,9 @@ export async function buildSnapshot(opts = {}) {
       kid: commits !== null && commits < cfg.kidCommits,
       home: homeOf(cfg.homes, base, key),
       floor: floorOf(cfg, base, key),
+      compactions: items.reduce((n, s) => n + (s.compactions || 0), 0),
+      context: contextPct(latest.info.ctx, cfg.contextWindow),
+      account: accountOf(cfg, base, key),
       subs: subs.slice(0, MAX_SUBS),
       subCount: subs.length,
       doing: latest.info.doing,
@@ -230,6 +247,7 @@ export async function buildSnapshot(opts = {}) {
     hooks: cardCount > 0 || hooksInstalled(),
     demo: false,
     floors,
+    quota: opts.quota ?? loadQuota(),
     people,
   };
 }

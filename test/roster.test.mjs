@@ -21,7 +21,7 @@ test('normalizeRoster: 이름 없는 항목·중복 이름·이상한 값은 버
     { name: 'x'.repeat(100), role: 'y'.repeat(200) },
   ]);
   assert.deepEqual(out.map((e) => e.name), ['Rick Deckard', 'Rachael', 'x'.repeat(40)]);
-  assert.deepEqual(out[1], { name: 'Rachael', role: '', tool: '', match: '', process: '', floor: '' });
+  assert.deepEqual(out[1], { name: 'Rachael', role: '', tool: '', match: '', process: '', floor: '', account: '' });
   assert.equal(out[2].role.length, 80);
   assert.deepEqual(normalizeRoster('nope'), []);
   assert.deepEqual(normalizeRoster(undefined), []);

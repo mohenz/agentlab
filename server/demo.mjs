@@ -4,13 +4,18 @@ import { normalizeConfig } from './config.mjs';
 
 const LOG_N = 8;
 const CAST = [
-  { name: 'my-app', commits: 812, sessions: 2, floor: 'work1' },
-  { name: 'api-server', commits: 340, home: 'server', floor: 'work1' },
-  { name: 'docs-site', commits: 23, floor: 'work2' },
-  { name: 'ml-pipeline', commits: 156, floor: 'work1' },
+  { name: 'my-app', commits: 812, sessions: 2, floor: 'work1', compactions: 5, context: 45, account: '주' },
+  { name: 'api-server', commits: 340, home: 'server', floor: 'work1', compactions: 0, context: 12, account: '부' },
+  { name: 'docs-site', commits: 23, floor: 'work2', compactions: 2, context: 88, account: '주' },
+  { name: 'ml-pipeline', commits: 156, floor: 'work1', compactions: 1, context: 53, account: null },
   { name: 'mobile-client', commits: 1290, floor: 'knowledge' },
   { name: 'infra-scripts', commits: 41, floor: 'work3' },
   { name: 'playground', commits: null, floor: 'suite' },
+];
+const DEMO_QUOTA = (now) => [
+  { name: 'Claude 주', period: '주간', remaining: 37, resetAt: new Date(now + 3 * 86400000).toISOString(), checkedAt: new Date(now - 20 * 60000).toISOString() },
+  { name: 'Claude 부', period: '5시간', remaining: 82, resetAt: new Date(now + 2 * 3600000).toISOString(), checkedAt: new Date(now - 9 * 3600000).toISOString() },
+  { name: 'ChatGPT 1', period: '월간', remaining: 12, resetAt: new Date(now + 9 * 86400000).toISOString(), checkedAt: new Date(now - 5 * 3600000).toISOString() },
 ];
 const ACTS = [
   ['read', 'server.mjs'], ['read', 'README.md'], ['edit', 'App.tsx'], ['edit', 'routes.ts'],
@@ -111,10 +116,13 @@ export function createDemo(seed = 7, start = Date.now()) {
           subs: p.subs.map((s) => ({ ...s })),
           subCount: p.subs.length,
           floor: p.floor,
+          compactions: p.compactions ?? 0,
+          context: p.context ?? null,
+          account: p.account ?? null,
           doing: last ? { k: last.k, a: last.a } : null,
           log: p.log.map((e) => ({ ...e })),
         };
       });
-    return { version: API_VERSION, now: new Date(now).toISOString(), hooks: true, demo: true, floors: floorSummary(cfg, list), people: list };
+    return { version: API_VERSION, now: new Date(now).toISOString(), hooks: true, demo: true, floors: floorSummary(cfg, list), quota: DEMO_QUOTA(now), people: list };
   };
 }

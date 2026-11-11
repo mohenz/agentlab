@@ -103,6 +103,69 @@ const OfficePanel = (() => {
     }
   }
 
+  // ---------- 요약 카드 — 결정 기다림 · 점검 대상 셋 · 병목률 · 계정 남은 한도 ----------
+  // 기준은 여기서 한 곳에 둔다(바꾸기 쉽게): 10분 넘게 활동이 없는 '일하는 중', 컨텍스트 80% 이상, 압축 3회 이상.
+  const QUIET_MS = 10 * 60 * 1000, CTX_HIGH = 80, COMPACT_MANY = 3, STALE_MS = 6 * 3600 * 1000;
+  const lastAt = d => { const l = (d.log || [])[(d.log || []).length - 1]; return l ? Date.parse(l.at) || 0 : 0; };
+  function rel(ms) {                                        // 짧은 시간 글 — 12분 · 3시간 · 2일
+    const m = Math.max(1, Math.round(Math.abs(ms) / 60000));
+    return m < 60 ? t("rel.m", { n: m }) : m < 1440 ? t("rel.h", { n: Math.round(m / 60) }) : t("rel.d", { n: Math.round(m / 1440) });
+  }
+  const names = (list, n = 2) => list.slice(0, n).map(d => d.name).join(", ") + (list.length > n ? ` +${list.length - n}` : "");
+  function card(title, value, sub, cls) {
+    const c = el("div", "o-card" + (cls ? " " + cls : ""));
+    c.append(el("span", "o-ct", title), el("b", "o-cv", value));
+    if (sub) c.append(el("small", "o-cs", sub));
+    return c;
+  }
+  function cards(people, quota, now = Date.now()) {
+    const box = $("office-cards");
+    if (!box) return;
+    const list = people || [];
+    const asking = list.filter(d => modeOf(d) === "decision");
+    const working = list.filter(d => modeOf(d) === "working");
+    const quiet = working.filter(d => d.status === "working" && now - lastAt(d) > QUIET_MS);
+    const ctxHigh = list.filter(d => Number.isFinite(d.context) && d.context >= CTX_HIGH);
+    const compactMany = list.filter(d => d.compactions >= COMPACT_MANY);
+    const denom = asking.length + working.length;
+    const items = [
+      card(t("card.wait"), t("card.waitN", { n: asking.length }), names(asking), asking.length ? "warn" : ""),
+      card(t("card.bottleneck"), denom ? t("card.ratio", { a: asking.length, b: denom, pct: Math.round(asking.length / denom * 100) }) : "—", "", ""),
+    ];
+    const grid = el("div", "o-cards-grid");
+    grid.append(...items);
+    const problems = el("div", "o-card o-problems");
+    problems.append(el("span", "o-ct", t("card.problems")));
+    for (const [label, arr] of [[t("card.quiet"), quiet], [t("card.ctx"), ctxHigh], [t("card.compact"), compactMany]]) {
+      const row = el("p", "o-prow" + (arr.length ? " on" : ""));
+      row.append(el("span", null, label), el("b", null, String(arr.length)));
+      if (arr.length) row.append(el("small", null, names(arr)));
+      problems.append(row);
+    }
+    const out = [grid, problems];
+    if ((quota || []).length) {
+      const q = el("div", "o-card o-quota");
+      q.append(el("span", "o-ct", t("card.quota")));
+      for (const x of quota) {
+        const checked = x.checkedAt ? Date.parse(x.checkedAt) : 0, stale = !checked || now - checked > STALE_MS;
+        const row = el("div", "o-qrow");
+        const head = el("p", "o-qhead");
+        head.append(el("span", null, x.period ? `${x.name} · ${x.period}` : x.name), el("b", null, `${x.remaining}%`));
+        const bar = el("div", "o-qbar" + (x.remaining <= 15 ? " low" : ""));
+        const fill = el("i"); fill.style.width = `${x.remaining}%`; bar.append(fill);
+        const foot = [];
+        if (x.resetAt) { const d = Date.parse(x.resetAt) - now; foot.push(t("card.reset", { when: d > 0 ? t("rel.in", { t: rel(d) }) : t("rel.ago", { t: rel(d) }) })); }
+        if (checked) foot.push(t("card.checked", { when: t("rel.ago", { t: rel(now - checked) }) }));
+        if (stale) foot.push(t("card.stale"));
+        row.append(head, bar, el("small", "o-qfoot", foot.join(" · ")));
+        q.append(row);
+      }
+      out.push(q);
+    }
+    box.hidden = false;
+    box.replaceChildren(...out);
+  }
+
   // ---------- 활동 로그 ----------
   // 서버 기록(Act)과 화면이 만든 사건(출근·퇴근 등)을 같은 줄에 섞는다. 글은 그릴 때 지금 언어로 만든다.
   // uid = 중복 거르기용 열쇠(서버 기록 한 줄 = 사람 + 시각 + 활동). 사건의 key(문구 열쇠)와 다른 칸이다.
@@ -153,5 +216,5 @@ const OfficePanel = (() => {
     render(P.people, P.sel);
   }
 
-  return { render, collect, drip, relabel, modeOf, onPick: f => { P.pick = f; } };
+  return { render, cards, collect, drip, relabel, modeOf, onPick: f => { P.pick = f; } };
 })();

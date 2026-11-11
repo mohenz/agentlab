@@ -66,7 +66,7 @@ test('형식: 최상위·Person 필드 전부', async () => {
   assert.ok(Array.isArray(s.floors) && s.floors.length >= 1); // 추가 필드: 층 목록·인원
   assert.equal(s.people.length, 1);
   const p = s.people[0];
-  assert.deepEqual(Object.keys(p).sort(), ['ask', 'commits', 'doing', 'floor', 'home', 'id', 'kid', 'log', 'name', 'path', 'pending', 'sessions', 'source', 'status', 'subCount', 'subs'].sort());
+  assert.deepEqual(Object.keys(p).sort(), ['account', 'ask', 'commits', 'compactions', 'context', 'doing', 'floor', 'home', 'id', 'kid', 'log', 'name', 'path', 'pending', 'sessions', 'source', 'status', 'subCount', 'subs'].sort());
   assert.equal(p.id, path.resolve(cwd));
   assert.equal(p.name, 'my-app');
   assert.equal(p.status, 'working');

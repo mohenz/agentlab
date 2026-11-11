@@ -126,13 +126,22 @@ function entryState(e) {
   };
 }
 
-const newAcc = () => ({ events: [], last: null, cwd: '' });
+const newAcc = () => ({ events: [], last: null, cwd: '', ctx: 0 });
+
+/** assistant 줄의 usage → 그 답이 읽은 입력 토큰(새 입력 + 캐시 읽기 + 캐시 만들기). 없거나 이상하면 0 */
+export function contextTokens(u) {
+  if (!u || typeof u !== 'object') return 0;
+  const n = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+  return n(u.input_tokens) + n(u.cache_read_input_tokens) + n(u.cache_creation_input_tokens);
+}
 
 /** 대화 줄 하나를 누적값(최근 활동·마지막 상태·cwd)에 더한다 — 앞에서 뒤 순서로 */
 function absorb(acc, e) {
   if (typeof e.cwd === 'string' && e.cwd) acc.cwd = e.cwd;
   const st = entryState(e);
   if (st) acc.last = st;
+  const ctx = e.type === 'assistant' && !e.isSidechain ? contextTokens(e.message && e.message.usage) : 0;
+  if (ctx > 0) acc.ctx = ctx; // 마지막 답이 읽은 컨텍스트 크기 = 지금 대화가 차지한 양
   const content = e.type === 'assistant' && e.message && Array.isArray(e.message.content) ? e.message.content : null;
   if (content) {
     for (const block of content) {
@@ -155,6 +164,7 @@ function merge(older, newer) {
     events: [...older.events, ...newer.events].slice(-LOG_N),
     last: newer.last || older.last,
     cwd: newer.cwd || older.cwd,
+    ctx: newer.ctx || older.ctx,
   };
 }
 
@@ -241,11 +251,11 @@ function readBackward(fd, size) {
   return { acc, end };
 }
 
-const EMPTY = Object.freeze({ doing: null, log: [], last: null, cwd: '' });
+const EMPTY = Object.freeze({ doing: null, log: [], last: null, cwd: '', ctx: 0 });
 
 function toInfo(acc) {
   const lastEv = acc.events[acc.events.length - 1];
-  return { doing: lastEv ? { k: lastEv.k, a: lastEv.a } : null, log: acc.events.slice(-LOG_N), last: acc.last, cwd: acc.cwd };
+  return { doing: lastEv ? { k: lastEv.k, a: lastEv.a } : null, log: acc.events.slice(-LOG_N), last: acc.last, cwd: acc.cwd, ctx: acc.ctx };
 }
 
 /** 대화 파일 하나 → { doing, log:[{at,k,a}], last, cwd }. 그대로면 캐시, 자랐으면 늘어난 부분만 읽는다 */

@@ -18,7 +18,7 @@ export function normalizeRoster(raw) {
     const name = text(e.name, 40);
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    out.push({ name, role: text(e.role, 80), tool: text(e.tool, 60), match: text(e.match, 260), process: text(e.process, 80), floor: text(e.floor, 20) });
+    out.push({ name, role: text(e.role, 80), tool: text(e.tool, 60), match: text(e.match, 260), process: text(e.process, 80), floor: text(e.floor, 20), account: text(e.account, 12) });
     if (out.length >= MAX_ROSTER) break;
   }
   return out;
@@ -65,7 +65,7 @@ export function applyRoster(people, roster, opts = {}) {
   for (const entry of roster) {
     if (hidden(entry.name)) continue;
     const online = entry.process ? running.has(imageKey(entry.process)) : true;
-    const meta = { role: entry.role, tool: entry.tool, roster: true, online, ...(entry.floor ? { floor: entry.floor } : {}) };
+    const meta = { role: entry.role, tool: entry.tool, roster: true, online, ...(entry.floor ? { floor: entry.floor } : {}), ...(entry.account ? { account: entry.account } : {}) };
     const live = entry.match
       ? people.find((p) => !taken.has(p) && (String(p.name).toLowerCase() === entry.match.toLowerCase() || pathKey(p.path) === pathKey(entry.match)))
       : null;

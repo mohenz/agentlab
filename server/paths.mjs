@@ -22,6 +22,7 @@ export function officeHome() {
 export const sessionsDir = () => path.join(officeHome(), 'sessions');
 export const configFile = () => path.join(officeHome(), 'config.json');
 export const logFile = () => path.join(officeHome(), 'server.log');
+export const quotaFile = () => path.join(officeHome(), 'quota.json');
 export const startingLock = () => path.join(officeHome(), 'server.starting');
 /** 데모 서버는 pid 파일을 따로 쓴다 — 실제 서버 기록을 덮지 않게 */
 export const pidFile = (demo = false) => path.join(officeHome(), demo ? 'server-demo.pid' : 'server.pid');

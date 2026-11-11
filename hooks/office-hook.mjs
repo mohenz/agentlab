@@ -230,6 +230,9 @@ export async function handle(data) {
   if (pid) card.pid = pid;
   if (pid && pidStart) card.pidStart = pidStart;
   Object.assign(card, extra);
+  // 압축 횟수 — 카드는 이벤트마다 새로 쓰이므로 이전 값을 이어 받아 PreCompact 마다 1 올린다
+  const compacts = (Number.isInteger(prior.compactCount) && prior.compactCount > 0 ? prior.compactCount : 0) + (event === 'PreCompact' ? 1 : 0);
+  if (compacts > 0) card.compactCount = compacts;
   card.updatedAt = new Date().toISOString();
   writeCard(file, card);
 

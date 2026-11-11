@@ -26,6 +26,8 @@ export const DEFAULTS = Object.freeze({
   floors: DEFAULT_FLOORS,
   floorMap: {},
   defaultFloor: 'work1',
+  contextWindow: 200000,
+  accountMap: {},
 });
 
 export const VERSION = (() => {
@@ -64,6 +66,10 @@ export function normalizeConfig(raw) {
     for (const [k, v] of Object.entries(c.homes)) if (typeof v === 'string') homes[k] = v;
   }
   const floors = normalizeFloors(c.floors);
+  const accountMap = {};
+  if (plainObj(c.accountMap)) {
+    for (const [k, v] of Object.entries(c.accountMap)) if (typeof v === 'string' && v.trim()) accountMap[k] = v.trim().slice(0, 12);
+  }
   const floorMap = {};
   if (plainObj(c.floorMap)) {
     for (const [k, v] of Object.entries(c.floorMap)) if (typeof v === 'string' && floors.some((f) => f.id === v)) floorMap[k] = v;
@@ -81,6 +87,8 @@ export function normalizeConfig(raw) {
     floors,
     floorMap,
     defaultFloor: floors.some((f) => f.id === c.defaultFloor) ? c.defaultFloor : floors[0].id,
+    contextWindow: num(c.contextWindow, 10000, 5000000, DEFAULTS.contextWindow),
+    accountMap,
   };
 }
 
@@ -123,6 +131,6 @@ export function demoPort(cfg = loadConfig()) {
 
 /** setup 이 처음 만들어 두는 config.json 내용 */
 export function defaultConfigText() {
-  const { port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor } = DEFAULTS;
-  return JSON.stringify({ port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor }, null, 2) + '\n';
+  const { port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor, contextWindow, accountMap } = DEFAULTS;
+  return JSON.stringify({ port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor, contextWindow, accountMap }, null, 2) + '\n';
 }

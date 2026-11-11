@@ -56,6 +56,28 @@ button { font: inherit; color: inherit; }
 .o-live { color: var(--live) !important; font-weight: 700 !important; animation: o-pulse 1.6s ease-in-out infinite; }
 @keyframes o-pulse { 50% { opacity: .45; } }
 #office-people, #office-log { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+/* 요약 카드 — 결정 기다림·병목률·점검 대상·계정 남은 한도 */
+#office-cards { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+#office-cards[hidden] { display: none; }
+.o-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.o-card { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid #E3E8E5; border-radius: 8px; background: #FFFFFF; }
+.o-card.warn { border-color: #F2B8B5; background: #FFF6F5; }
+.o-ct { font-size: 12px; color: var(--ink3); }
+.o-cv { font-size: 18px; font-weight: 800; }
+.o-card.warn .o-cv { color: #B42318; }
+.o-cs { font-size: 12px; color: var(--ink3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o-prow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin: 0; font-size: 13px; color: var(--ink3); }
+.o-prow span { flex: 1 1 auto; white-space: nowrap; }
+.o-prow b { margin-left: auto; font-weight: 700; }
+.o-prow.on { color: var(--ink); }
+.o-prow.on b { color: #B42318; }
+.o-prow small { flex-basis: 100%; font-size: 12px; color: var(--ink3); }
+.o-qrow { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.o-qhead { display: flex; justify-content: space-between; margin: 0; font-size: 13px; }
+.o-qbar { height: 6px; border-radius: 3px; background: #E9ECEF; overflow: hidden; }
+.o-qbar i { display: block; height: 100%; background: #27AE60; }
+.o-qbar.low i { background: #D92D20; }
+.o-qfoot { font-size: 11px; color: var(--ink3); }
 #office-people { max-height: 50%; flex-shrink: 0; border-bottom: 1px solid #E8ECEA; padding-bottom: 6px; }
 #office-log { flex: 1; min-height: 0; }
 
