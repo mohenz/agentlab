@@ -10,7 +10,6 @@ export const DEFAULT_PORT = 4777;
 export const DEFAULT_FLOORS = Object.freeze([
   { id: 'work1', label: '업무층 1' },
   { id: 'work2', label: '업무층 2' },
-  { id: 'work3', label: '업무층 3' },
   { id: 'knowledge', label: '지식층' },
   { id: 'suite', label: '대표실' },
 ]);

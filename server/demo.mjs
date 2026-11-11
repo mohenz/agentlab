@@ -9,7 +9,7 @@ const CAST = [
   { name: 'docs-site', commits: 23, floor: 'work2', compactions: 2, context: 88, account: '주' },
   { name: 'ml-pipeline', commits: 156, floor: 'work1', compactions: 1, context: 53, account: null },
   { name: 'mobile-client', commits: 1290, floor: 'knowledge' },
-  { name: 'infra-scripts', commits: 41, floor: 'work3' },
+  { name: 'infra-scripts', commits: 41, floor: 'work2' },
   { name: 'playground', commits: null, floor: 'suite' },
   { name: 'Rachael', commits: null, floor: 'suite', greeter: true, gender: 'f' },
 ];

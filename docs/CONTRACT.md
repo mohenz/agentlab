@@ -141,7 +141,7 @@ thinking·빈 글은 건너뛴다. 대화 기록 형식은 Claude Code 내부 �
 - `hide` — 사무실에 안 띄울 프로젝트 이름·경로.
 - `contextWindow` — 컨텍스트 창 크기(토큰, 기본 200000). 1M 컨텍스트 모델을 쓰면 `1000000`. 이름표의 `45%` 가 이 값을 기준으로 한다.
 - `accountMap` — 프로젝트 이름(또는 경로) → 짧은 계정 이름(12자, 예: "주"·"부"). 이름표 끝에 붙는다.
-- `floors` — 층 목록(`id` 영문·숫자·`_-` 20자, `label` 30자, 최대 12층). 기본은 `work1·work2·work3`(업무층 3색)·`knowledge`(지식층)·`suite`(대표실).
+- `floors` — 층 목록(`id` 영문·숫자·`_-` 20자, `label` 30자, 최대 12층). 기본은 `work1`(업무층 1, 따뜻한 색)·`work2`(업무층 2, 초록)·`knowledge`(지식층)·`suite`(대표실). 업무층은 2개이며 이전 `work3` 는 `work2` 로 번호를 다시 매겼다(옛 `work3` 설정은 목록에 없는 id 라 버려지고 기본 층으로 간다).
   화면이 그림을 가진 id(`web/office-world.js` 의 `OFFICE_FLOORS`)만 층으로 보여 준다.
 - `floorMap` — 프로젝트 이름(또는 경로) → 층 id. 목록에 없는 id 는 버린다. `defaultFloor` — 매핑이 없는 프로젝트가 사는 층(기본 첫 층).
 - `lang` — "auto" | "ko" | "en". 화면에 그대로 전달(`GET /api/config`).

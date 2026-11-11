@@ -11,7 +11,7 @@ import { createDemo } from '../server/demo.mjs';
 import { forget as forgetAct } from '../server/activity.mjs';
 import { forget as forgetSess } from '../server/sessions.mjs';
 
-test('normalizeFloors: 잘못된 id·중복·너무 긴 이름을 걸러내고, 하나도 없으면 기본 5개 층', () => {
+test('normalizeFloors: 잘못된 id·중복·너무 긴 이름을 걸러내고, 하나도 없으면 기본 4개 층', () => {
   const out = normalizeFloors([
     { id: 'a1', label: '  첫째  ' }, { id: 'a1', label: '중복' }, { id: '한글', label: 'x' }, { id: 'ok_2' }, null, 'str',
     { id: 'long', label: 'x'.repeat(100) },
@@ -32,22 +32,22 @@ test('설정: floorMap 은 있는 층 id 만, defaultFloor 는 목록 안의 값
   assert.equal(normalizeConfig({ defaultFloor: 'zzz' }).defaultFloor, 'work1');
   assert.equal(normalizeConfig({ floors: [{ id: 'x' }], defaultFloor: 'work1' }).defaultFloor, 'x'); // 목록에 없으면 첫 층
   const text = JSON.parse(defaultConfigText());
-  assert.ok(Array.isArray(text.floors) && text.floors.length === 5);
+  assert.ok(Array.isArray(text.floors) && text.floors.length === 4);
   assert.equal(text.defaultFloor, 'work1');
 });
 
 test('floorOf: 폴더 이름 또는 경로로 층을 정하고 없으면 기본 층', () => {
-  const cfg = normalizeConfig({ floorMap: { 'my-app': 'work2', '/work/docs': 'suite' }, defaultFloor: 'work3' });
+  const cfg = normalizeConfig({ floorMap: { 'my-app': 'work2', '/work/docs': 'suite' }, defaultFloor: 'knowledge' });
   assert.equal(floorOf(cfg, 'my-app', '/x/my-app'), 'work2');
   assert.equal(floorOf(cfg, 'docs', path.resolve('/work/docs').toLowerCase()), 'suite');
-  assert.equal(floorOf(cfg, 'other', '/x/other'), 'work3');
+  assert.equal(floorOf(cfg, 'other', '/x/other'), 'knowledge');
 });
 
 test('floorSummary: 층별 인원을 세고, 모르는 층의 사람은 기본 층으로 옮긴다', () => {
   const cfg = normalizeConfig({ defaultFloor: 'work1' });
   const people = [{ floor: 'work1' }, { floor: 'work2' }, { floor: 'work2' }, { floor: 'ghost' }, {}];
   const out = floorSummary(cfg, people);
-  assert.deepEqual(out.map((f) => [f.id, f.count]), [['work1', 3], ['work2', 2], ['work3', 0], ['knowledge', 0], ['suite', 0]]);
+  assert.deepEqual(out.map((f) => [f.id, f.count]), [['work1', 3], ['work2', 2], ['knowledge', 0], ['suite', 0]]);
   assert.equal(people[3].floor, 'work1');
 });
 

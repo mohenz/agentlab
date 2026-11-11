@@ -15,8 +15,7 @@ const OFFICE_STAND_AT = y => Math.max(104, Math.min(172, 124 + (y - 600) * 0.136
 // 층 — id 는 서버 config.json 의 floors(server/config.mjs DEFAULT_FLOORS)와 같다. art = office/<art>.webp
 const OFFICE_FLOORS = [
   { id: "work1", art: "floor_work_warm", world: "work" },
-  { id: "work2", art: "floor_work_blue", world: "work" },
-  { id: "work3", art: "floor_work_green", world: "work" },
+  { id: "work2", art: "floor_work_green", world: "work" },
   { id: "knowledge", art: "floor_knowledge", world: "knowledge" },
   { id: "suite", art: "floor_suite", world: "suite" },
 ];
