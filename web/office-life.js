@@ -408,7 +408,7 @@ const OfficeLife = (() => {
 
   // ---------- 데이터가 오면 들이고 내보낸다 ----------
   // list = [{ id, name, status, ask, kid, home, doing(글), subCount, subs:[{id,type,desc,doing(글)}], commits, path }]
-  const START_NODES = ["inner", "la1", "B1", "B2", "C1", "C2", "A2", "A3", "ra2", "ra3"];
+  const START_NODES = ["inner", "lob2", "c1", "c3", "S2", "S3", "rv1", "st"];
   function sync(list) {
     const seen = new Set();
     for (const d of list) {

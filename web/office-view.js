@@ -21,6 +21,9 @@
     // 휴대폰 만지작 — 서서 스크롤·문자·킥킥, 앉아서(소파 정면) 스크롤·문자·킥킥, 책상 등지고
     phScroll: ["phone", 1, 0], phText: ["phone", 2, 0], phLol: ["phone", 3, 0],
     sitScroll: ["phone", 4, 0], sitText: ["phone", 5, 0], sitBackPhone: ["phone", 6, 0], sitLol: ["phone", 7, 0],
+    // 새 그림의 상태 자세(시트 4) — 졸기·널브러짐·손들기·머리 감싸기·서류 읽기·상자 나르기·안내
+    sleepDesk: ["4", 0, 0], slump: ["4", 1, 0], raiseHand: ["4", 2, 0], headDesk: ["4", 3, 0],
+    readDoc: ["4", 4, 0], carryBox: ["4", 5, 0], guide: ["4", 6, 0],
   };
   // 어른 걷기 = 한 걸음 8장(앞·뒤). 칸 수가 바뀌면 WALK_N 과 시트 칸 번호만 고친다
   const WALK_N = 8;
@@ -38,12 +41,12 @@
     const n = Math.floor((e.dist || 0) / (A.strides[e.species] * standOf(e) / A.stand)) % WALK_N;
     return (up ? "stepB" : "stepF") + n;
   }
-  const SHEETS = ["frog", "frog2", "frog3", "frogmini", "frogwalk", "frogphone",
-                  "capy", "capy2", "capy3", "capymini", "capywalk", "capyphone"];
+  const SHEETS = ["frog", "frog2", "frog3", "frog4", "frogmini", "frogwalk", "frogphone",
+                  "capy", "capy2", "capy3", "capy4", "capymini", "capywalk", "capyphone"];
   const TINT = 0.6;              // 색칠한 칸 축척 — 쓰는 자세만 그때그때 칠해 메모리를 아낀다
-  const STAND = 96;              // 보통 캐릭터 키(사무실 그림 픽셀)
+  const STAND = 140;             // 보통 캐릭터 키(사무실 그림 픽셀) — 실제 키는 발끝 y 에 따라 OFFICE_STAND_AT 로 정한다
   const KID = 0.7;               // 커밋이 적은 저장소 = 꼬마(70%)
-  const MINI = 0.5;              // 서브에이전트 = 주인 키의 50%
+  const MINI = 1.0;              // 서브에이전트 — 꼬마 그림이 이미 어른 키의 약 62% 로 그려져 있다
   const FRAME_MS = 1000 / 30, POLL_MS = 3000;
   const BG = "#EDEFF1";
   const FONT = '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif';
@@ -125,7 +128,7 @@
     if (since < 0.5) { const u = (since - 0.08) / 0.42; return { dy: -Math.sin(u * Math.PI) * h, sx: 0.94, sy: 1.08 }; }
     return { dy: 0, sx: 1.12, sy: 0.86 };
   }
-  const standOf = p => STAND * (p.kid ? KID : 1);
+  const standOf = p => (typeof OFFICE_STAND_AT === "function" ? OFFICE_STAND_AT(p.y ?? 700) : STAND) * (p.kid ? KID : 1);
 
   // 방향을 바꾸면 '뿅' — 가로가 잠깐 좁아졌다 돌아온다(휙 뒤집히는 대신)
   function turn(e, face, t) { if (e.face !== face) { e.face = face; e.turnT = t; } }
