@@ -9,11 +9,12 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- 위 얇은 막대 — 제목·상태 요약·데모 표시·언어 -->
+<!-- 위 막대 — 제목·관측 상태·요약·언어 -->
 <header id="top">
   <h1 data-i18n="title">AgentLab</h1>
+  <span id="live" data-i18n="bar.live">관측 중</span>
+  <p id="observed"></p>
   <p id="summary" aria-live="polite"></p>
-  <span id="demo" data-i18n="demo" hidden>데모 데이터</span>
   <div id="lang" role="group" data-i18n-aria="lang.label" aria-label="언어">
     <button type="button" data-lang="ko" aria-pressed="false">한국어</button>
     <button type="button" data-lang="en" aria-pressed="false">EN</button>
@@ -21,20 +22,31 @@
 </header>
 
 <main id="main">
+  <!-- 왼쪽 — 층별 안내: 위층이 위, 누르면 그 층으로. 아래에 지금 보는 층 -->
+  <aside id="office-left" aria-label="층별 안내">
+    <h2 data-i18n="left.title">층별 안내</h2>
+    <nav id="floors" aria-label="층"></nav>
+    <div id="floor-now"><b id="floor-now-n"></b><span data-i18n="floor.now">현재 층</span></div>
+  </aside>
   <!-- 가운데 사무실 — 캔버스 하나에 그린다(office-view.js), 움직임은 office-life.js -->
   <section id="office-stage">
-    <nav id="floors" aria-label="층" hidden></nav>
-    <div id="notice" role="status" hidden></div>
-    <div id="office-box"><canvas id="office-canvas" data-i18n-aria="canvas.label" aria-label="사무실"></canvas></div>
+    <div id="stage-head"><small id="stage-eye">AGENTLAB</small><h2 id="stage-title"></h2></div>
+    <div id="office-box">
+      <div id="notice" role="status" hidden></div>
+      <canvas id="office-canvas" data-i18n-aria="canvas.label" aria-label="사무실"></canvas>
+    </div>
   </section>
-  <!-- 오른쪽 — 누가 무엇을 하는지 + 살아 움직이는 활동 로그(office-panel.js) -->
+  <!-- 오른쪽 — 요약 카드 + 누가 무엇을 하는지 + 활동 로그(office-panel.js) -->
   <aside id="office-side">
     <section id="office-cards" aria-label="요약" hidden></section>
-    <h2><span data-i18n="side.people">사무실 사람들</span> <small id="office-count"></small></h2>
-    <p class="o-hint" data-i18n="side.hint"></p>
-    <ul id="office-people"></ul>
-    <h2><span data-i18n="side.log">활동 로그</span> <small class="o-live">● LIVE</small></h2>
-    <ol id="office-log"></ol>
+    <section class="o-box">
+      <h2><span data-i18n="side.people">사무실 사람들</span> <small id="office-count"></small></h2>
+      <ul id="office-people"></ul>
+    </section>
+    <section class="o-box o-logbox">
+      <h2><span data-i18n="side.log">활동 로그</span> <small class="o-live">● LIVE</small></h2>
+      <ol id="office-log"></ol>
+    </section>
   </aside>
 </main>
 

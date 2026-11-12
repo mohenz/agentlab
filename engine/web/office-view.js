@@ -468,6 +468,7 @@
       OfficeLife.setSchedule(st.schedule);
       st.meta = { hooks: body.hooks !== false, demo: !!body.demo };
       st.failNet = false;
+      st.at = new Date();
       st.floors = floorList(body.floors, people);
       if (!st.floor) setFloor(initialFloor(), true);
       OfficeLife.sync(people.filter(p => floorOf(p) === st.floor).map(toLife));
@@ -482,13 +483,13 @@
     }
     bar();
   }
-  // 위 막대(상태 요약·데모 표시)와 캔버스 위 안내 줄
+  // 위 막대(관측 시각·상태 요약)와 캔버스 위 안내 줄
   function bar() {
     const ppl = st.people;
     const c = s => (ppl || []).filter(p => OfficePanel.modeOf(p) === s).length;
     const subs = (ppl || []).reduce((n, p) => n + (p.subCount || 0), 0);
     $("summary").textContent = ppl ? t("sum", { w: c("working"), d: c("decision"), r: c("rest") }) + (subs ? t("sum.subs", { n: subs }) : "") : "";
-    $("demo").hidden = !st.meta?.demo;
+    $("observed").textContent = st.at ? t("bar.at", { t: st.at.toLocaleTimeString(I18N.lang === "en" ? "en-GB" : "ko-KR", { hour12: false }) }) : "";
     const notes = [];
     if (st.failImg) notes.push(t("note.img"));
     if (st.failNet) notes.push(t("note.net"));
@@ -532,18 +533,26 @@
   function renderFloors() {
     const nav = $("floors");
     if (!nav || !st.floors) return;
-    nav.hidden = st.floors.length < 2;
-    nav.replaceChildren(...st.floors.map(f => {
+    // 층 번호 = 목록 순서(아래부터 1F). 위층이 위에 오게 거꾸로 늘어놓는다
+    const num = f => `${st.floors.indexOf(f) + 1}F`;
+    nav.replaceChildren(...[...st.floors].reverse().map(f => {
       const b = document.createElement("button");
       b.type = "button"; b.dataset.id = f.id;
       b.className = "floor" + (f.id === st.floor ? " on" : "");
       b.setAttribute("aria-pressed", f.id === st.floor ? "true" : "false");
+      const no = document.createElement("b"); no.textContent = num(f);
       const name = document.createElement("span"); name.textContent = f.label;
       const n = document.createElement("small"); n.textContent = String(f.count);
-      b.append(name, n);
+      if (f.count > 0) n.className = "has";
+      b.append(no, name, n);
       b.onclick = () => { st.sel = null; setFloor(f.id); OfficePanel.render(st.people || [], st.sel); };
       return b;
     }));
+    const cur = st.floors.find(f => f.id === st.floor);
+    if (cur) {
+      $("floor-now-n").textContent = num(cur);
+      $("stage-title").textContent = `${num(cur)} ${cur.label}`;
+    }
   }
 
   // ---------- 고르기 — 캐릭터나 목록을 누르면 그 사람을 펼쳐 보이고 발밑에 고리 ----------

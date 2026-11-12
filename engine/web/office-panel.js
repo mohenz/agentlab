@@ -112,12 +112,6 @@ const OfficePanel = (() => {
     return m < 60 ? t("rel.m", { n: m }) : m < 1440 ? t("rel.h", { n: Math.round(m / 60) }) : t("rel.d", { n: Math.round(m / 1440) });
   }
   const names = (list, n = 2) => list.slice(0, n).map(d => d.name).join(", ") + (list.length > n ? ` +${list.length - n}` : "");
-  function card(title, value, sub, cls) {
-    const c = el("div", "o-card" + (cls ? " " + cls : ""));
-    c.append(el("span", "o-ct", title), el("b", "o-cv", value));
-    if (sub) c.append(el("small", "o-cs", sub));
-    return c;
-  }
   function cards(people, quota, schedule, now = Date.now()) {
     const box = $("office-cards");
     if (!box) return;
@@ -128,21 +122,29 @@ const OfficePanel = (() => {
     const ctxHigh = list.filter(d => Number.isFinite(d.context) && d.context >= CTX_HIGH);
     const compactMany = list.filter(d => d.compactions >= COMPACT_MANY);
     const denom = asking.length + working.length;
-    const items = [
-      card(t("card.wait"), t("card.waitN", { n: asking.length }), names(asking), asking.length ? "warn" : ""),
-      card(t("card.bottleneck"), denom ? t("card.ratio", { a: asking.length, b: denom, pct: Math.round(asking.length / denom * 100) }) : "—", "", ""),
-    ];
-    const grid = el("div", "o-cards-grid");
-    grid.append(...items);
-    const problems = el("div", "o-card o-problems");
+    const pct = denom ? Math.round(asking.length / denom * 100) : 0;
+    // 점검 대상 — 큰 숫자 셋(조용함·컨텍스트·압축). 하나라도 있으면 카드를 붉게
+    const problems = el("div", "o-card o-problems" + (quiet.length + ctxHigh.length + compactMany.length ? " warn" : ""));
     problems.append(el("span", "o-ct", t("card.problems")));
+    const trio = el("div", "o-trio");
+    const flagged = [];
     for (const [label, arr] of [[t("card.quiet"), quiet], [t("card.ctx"), ctxHigh], [t("card.compact"), compactMany]]) {
-      const row = el("p", "o-prow" + (arr.length ? " on" : ""));
-      row.append(el("span", null, label), el("b", null, String(arr.length)));
-      if (arr.length) row.append(el("small", null, names(arr)));
-      problems.append(row);
+      const col = el("div", "o-pcol" + (arr.length ? " on" : ""));
+      col.append(el("b", null, String(arr.length)), el("small", null, label));
+      trio.append(col);
+      for (const d of arr) if (!flagged.includes(d)) flagged.push(d);
     }
-    const out = [grid, problems];
+    problems.append(trio);
+    if (flagged.length) problems.append(el("small", "o-cs", names(flagged, 3)));
+    // 병목률 — 승인 대기 / (승인 대기 + 일하는 중)
+    const neck = el("div", "o-card o-neck" + (asking.length ? " warn" : ""));
+    const nh = el("p", "o-thead");
+    nh.append(el("span", "o-ct", t("card.bottleneck")), el("b", "o-cv", denom ? `${pct}%` : "—"));
+    neck.append(nh);
+    const nbar = el("div", "o-qbar" + (pct >= 50 ? " low" : "")), nfill = el("i"); nfill.style.width = `${pct}%`; nbar.append(nfill);
+    neck.append(nbar);
+    if (denom) neck.append(el("small", "o-cs", `${t("card.wait")} ${t("card.waitN", { n: asking.length })} / ${denom}${asking.length ? " · " + names(asking) : ""}`));
+    const out = [problems, neck];
     if (schedule) {                                           // 오늘의 초청 — 서버가 PMOTOOLS 에서 받아 둔 오늘 일정
       const c = el("div", "o-card o-today");
       const head = el("p", "o-thead");
@@ -166,16 +168,20 @@ const OfficePanel = (() => {
       q.append(el("span", "o-ct", t("card.quota")));
       for (const x of quota) {
         const checked = x.checkedAt ? Date.parse(x.checkedAt) : 0, stale = !checked || now - checked > STALE_MS;
+        const low = x.remaining <= 15;
         const row = el("div", "o-qrow");
-        const head = el("p", "o-qhead");
-        head.append(el("span", null, x.period ? `${x.name} · ${x.period}` : x.name), el("b", null, `${x.remaining}%`));
-        const bar = el("div", "o-qbar" + (x.remaining <= 15 ? " low" : ""));
-        const fill = el("i"); fill.style.width = `${x.remaining}%`; bar.append(fill);
+        const main = el("div", "o-qmain");
         const foot = [];
+        if (x.period) foot.push(x.period);
         if (x.resetAt) { const d = Date.parse(x.resetAt) - now; foot.push(t("card.reset", { when: d > 0 ? t("rel.in", { t: rel(d) }) : t("rel.ago", { t: rel(d) }) })); }
         if (checked) foot.push(t("card.checked", { when: t("rel.ago", { t: rel(now - checked) }) }));
         if (stale) foot.push(t("card.stale"));
-        row.append(head, bar, el("small", "o-qfoot", foot.join(" · ")));
+        main.append(el("b", null, x.name), el("small", "o-qfoot", foot.join(" · ")));
+        const val = el("div", "o-qval");
+        const bar = el("div", "o-qbar" + (low ? " low" : ""));
+        const fill = el("i"); fill.style.width = `${x.remaining}%`; bar.append(fill);
+        val.append(el("b", low ? "low" : null, `${x.remaining}%`), bar);
+        row.append(main, val);
         q.append(row);
       }
       out.push(q);
