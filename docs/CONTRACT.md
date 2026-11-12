@@ -1,4 +1,4 @@
-# 3D 사무실 (claude-3d-frog-office) — 구조와 약속
+# 3D 사무실 (AgentLab) — 구조와 약속
 
 Claude Code 세션 하나하나를 사무실 캐릭터(개구리·카피바라)로 보여 주는 **보기 전용** 로컬 웹 화면.
 어떤 IDE·터미널(VS Code, Cursor, JetBrains, iTerm, Windows Terminal …)에서 Claude 를 쓰든 동작해야 한다.

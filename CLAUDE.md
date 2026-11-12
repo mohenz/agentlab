@@ -1,4 +1,4 @@
-# claude-3d-frog-office — Claude Code 작업 지침
+# AgentLab — Claude Code 작업 지침
 
 이 저장소는 **Claude Code 세션을 아이소메트릭 사무실 캐릭터로 보여 주는 로컬 웹 화면**이다.
 사용자가 이 폴더에서 Claude 에게 설치·실행을 부탁하면 아래 절차를 그대로 따른다. 사용자의 언어(한국어/영어)로 답한다.
