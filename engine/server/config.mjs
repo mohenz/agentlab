@@ -1,0 +1,137 @@
+// 설정(config.json) 읽기 — 없거나 깨져도 기본값으로 선다. 손으로 고친 이상한 값은 기본값으로 닫는다.
+import fs from 'node:fs';
+import path from 'node:path';
+import { REPO_DIR, configFile } from './paths.mjs';
+import { normalizeRoster } from './roster.mjs';
+import { normalizeSchedule } from './schedule.mjs';
+
+export const DEFAULT_PORT = 4777;
+/** 층 목록 기본값 — id 는 화면의 층 그림·좌표(web/office-world.js OFFICE_FLOORS)와 같아야 한다. label 은 config.json 의 floors 로 바꿀 수 있다 */
+export const DEFAULT_FLOORS = Object.freeze([
+  { id: 'work1', label: '업무층 1' },
+  { id: 'work2', label: '업무층 2' },
+  { id: 'knowledge', label: '지식층' },
+  { id: 'suite', label: '대표실' },
+]);
+export const DEFAULTS = Object.freeze({
+  port: DEFAULT_PORT,
+  autoStart: true,
+  homes: {},
+  hide: [],
+  fallbackMinutes: 20,
+  staleHours: 6,
+  kidCommits: 50,
+  lang: 'auto',
+  roster: [],
+  floors: DEFAULT_FLOORS,
+  floorMap: {},
+  defaultFloor: 'work1',
+  contextWindow: 200000,
+  accountMap: {},
+});
+
+export const VERSION = (() => {
+  try {
+    return String(JSON.parse(fs.readFileSync(path.join(REPO_DIR, 'package.json'), 'utf8')).version || '0.0.0');
+  } catch {
+    return '0.0.0';
+  }
+})();
+
+const num = (v, lo, hi, def) => (Number.isFinite(v) && v >= lo && v <= hi ? v : def);
+const plainObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+
+/** 층 목록 검증 — id 는 영문·숫자·_- 20자, 이름 30자, 최대 12층, 중복 id 는 버린다. 하나도 없으면 기본 목록 */
+export function normalizeFloors(raw) {
+  if (!Array.isArray(raw)) return DEFAULT_FLOORS.map((f) => ({ ...f }));
+  const seen = new Set();
+  const out = [];
+  for (const f of raw) {
+    if (!plainObj(f)) continue;
+    const id = typeof f.id === 'string' ? f.id.trim() : '';
+    if (!/^[A-Za-z0-9_-]{1,20}$/.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    const label = typeof f.label === 'string' && f.label.trim() ? f.label.trim().slice(0, 30) : id;
+    out.push({ id, label });
+    if (out.length >= 12) break;
+  }
+  return out.length ? out : DEFAULT_FLOORS.map((f) => ({ ...f }));
+}
+
+/** 읽은 값 → 검증된 설정. 모르는 키는 버린다. */
+export function normalizeConfig(raw) {
+  const c = plainObj(raw) ? raw : {};
+  const homes = {};
+  if (plainObj(c.homes)) {
+    for (const [k, v] of Object.entries(c.homes)) if (typeof v === 'string') homes[k] = v;
+  }
+  const floors = normalizeFloors(c.floors);
+  const accountMap = {};
+  if (plainObj(c.accountMap)) {
+    for (const [k, v] of Object.entries(c.accountMap)) if (typeof v === 'string' && v.trim()) accountMap[k] = v.trim().slice(0, 12);
+  }
+  const floorMap = {};
+  if (plainObj(c.floorMap)) {
+    for (const [k, v] of Object.entries(c.floorMap)) if (typeof v === 'string' && floors.some((f) => f.id === v)) floorMap[k] = v;
+  }
+  return {
+    port: Number.isInteger(c.port) ? num(c.port, 1, 65535, DEFAULT_PORT) : DEFAULT_PORT,
+    autoStart: c.autoStart !== false,
+    homes,
+    hide: Array.isArray(c.hide) ? c.hide.filter((x) => typeof x === 'string' && x) : [],
+    fallbackMinutes: num(c.fallbackMinutes, 0, 24 * 60, DEFAULTS.fallbackMinutes),
+    staleHours: num(c.staleHours, 0.05, 24 * 30, DEFAULTS.staleHours),
+    kidCommits: num(c.kidCommits, 0, 1e9, DEFAULTS.kidCommits),
+    lang: ['auto', 'ko', 'en'].includes(c.lang) ? c.lang : 'auto',
+    roster: normalizeRoster(c.roster),
+    floors,
+    floorMap,
+    defaultFloor: floors.some((f) => f.id === c.defaultFloor) ? c.defaultFloor : floors[0].id,
+    contextWindow: num(c.contextWindow, 10000, 5000000, DEFAULTS.contextWindow),
+    accountMap,
+    schedule: normalizeSchedule(c.schedule), // 계정이 들어 있다 — 응답·로그에 절대 싣지 않는다
+  };
+}
+
+let cache = null; // { file, mtimeMs, cfg } — 폴링마다 파일을 다시 파싱하지 않게
+
+export function loadConfig() {
+  const file = configFile();
+  let mtimeMs = -1;
+  try {
+    mtimeMs = fs.statSync(file).mtimeMs;
+  } catch {
+    /* 없음 = 기본값 */
+  }
+  if (cache && cache.file === file && cache.mtimeMs === mtimeMs) return cache.cfg;
+  let raw = {};
+  if (mtimeMs >= 0) {
+    try {
+      raw = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
+    } catch {
+      raw = {};
+    }
+  }
+  const cfg = normalizeConfig(raw);
+  cache = { file, mtimeMs, cfg };
+  return cfg;
+}
+
+/** 포트 — 환경변수 CLAUDE_OFFICE_PORT 가 설정보다 우선 */
+export function resolvePort(cfg = loadConfig()) {
+  const env = Number(process.env.CLAUDE_OFFICE_PORT);
+  if (Number.isInteger(env) && env >= 1 && env <= 65535) return env;
+  return cfg.port;
+}
+
+/** 데모 서버 포트 — 실제 서버와 헷갈리지 않게 한 칸 옆 */
+export function demoPort(cfg = loadConfig()) {
+  const p = resolvePort(cfg);
+  return p >= 65535 ? p - 1 : p + 1;
+}
+
+/** setup 이 처음 만들어 두는 config.json 내용 */
+export function defaultConfigText() {
+  const { port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor, contextWindow, accountMap } = DEFAULTS;
+  return JSON.stringify({ port, autoStart, homes, hide, fallbackMinutes, staleHours, kidCommits, lang, roster, floors, floorMap, defaultFloor, contextWindow, accountMap }, null, 2) + '\n';
+}
