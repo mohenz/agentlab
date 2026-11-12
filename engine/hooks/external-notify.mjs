@@ -6,7 +6,7 @@
 //   node hooks/external-notify.mjs --id codex-1 --remove            (퇴근)
 //
 // Codex CLI 의 notify 로 쓰려면 ~/.codex/config.toml 에 한 줄(경로는 이 저장소 위치로):
-//   notify = ["node", "D:/Workspace/claude-3d-frog-office/hooks/external-notify.mjs", "--codex"]
+//   notify = ["node", "D:/Workspace/agentlab/engine/hooks/external-notify.mjs", "--codex"]
 // Codex 는 턴이 끝날 때마다 JSON 한 덩어리를 마지막 인자로 넘긴다({"type":"agent-turn-complete","cwd":...,"thread-id":...}).
 // --codex 로 부르면 그 JSON 을 읽어 쉬는 중(rest) 카드를 쓴다. 일하는 중은 Codex 세션 파일이 바뀌는 것으로 서버가 알아본다.
 // 항상 조용히 끝난다(0) — 도구의 본 작업을 방해하지 않는다.
