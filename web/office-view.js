@@ -45,7 +45,7 @@
                   "capy", "capy2", "capy3", "capy4", "capymini", "capywalk", "capyphone"];
   const TINT = 0.6;              // 색칠한 칸 축척 — 쓰는 자세만 그때그때 칠해 메모리를 아낀다
   const STAND = 140;             // 보통 캐릭터 키(사무실 그림 픽셀) — 실제 키는 발끝 y 에 따라 OFFICE_STAND_AT 로 정한다
-  const KID = 0.7;               // 커밋이 적은 저장소 = 꼬마(70%)
+  const KID = 0.7;               // 꼬마 크기 — 2026-11-12부터 화면에서 꼬마를 쓰지 않는다(life/view 동기화에서 kid=false)
   const MINI = 1.0;              // 서브에이전트 — 꼬마 그림이 이미 어른 키의 약 62% 로 그려져 있다
   const FRAME_MS = 1000 / 30, POLL_MS = 3000;
   const BG = "#EDEFF1";
@@ -451,7 +451,7 @@
   const norm = d => ({ ...d, id: String(d.id ?? d.path ?? d.name), name: String(d.name ?? d.id ?? "?"),
                        subs: Array.isArray(d.subs) ? d.subs : [], log: Array.isArray(d.log) ? d.log : [] });
   const toLife = d => ({
-    id: d.id, name: d.name, status: d.status, ask: d.ask, kid: d.kid, home: d.home, commits: d.commits, path: d.path, gender: d.gender || null, source: d.source, greeter: !!d.greeter,
+    id: d.id, name: d.name, status: d.status, ask: d.ask, kid: false, home: d.home, commits: d.commits, path: d.path, gender: d.gender || null, source: d.source, greeter: !!d.greeter,
     doing: I18N.act(d.doing), subCount: d.subCount || 0,
     tag: { ctx: Number.isFinite(d.context) ? d.context : null, compact: d.compactions > 0 ? d.compactions : 0, ask: d.pending > 0 || d.status === "decision", account: d.account || "" },
     subs: d.subs.map(s => ({ id: String(s.id), type: s.type || "", desc: s.desc || "", doing: I18N.act(s.doing) })),

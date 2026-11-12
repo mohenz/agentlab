@@ -464,7 +464,7 @@ const OfficeLife = (() => {
       }
       const was = p.status, wasDoing = p.doing, back = p.leaving, wasMode = fresh ? null : modeOf(p);
       const wasDesk = L.desks.get(p.id);
-      Object.assign(p, { name: d.name, status: d.status, ask: d.ask || "", kid: !!d.kid, home: d.home || null, tag: d.tag || null, greeter: !!d.greeter,
+      Object.assign(p, { name: d.name, status: d.status, ask: d.ask || "", kid: false, home: d.home || null, tag: d.tag || null, greeter: !!d.greeter,
                          doing: d.doing || "", subCount: d.subCount || 0, subs: d.subs || [], commits: d.commits,
                          path0: d.path });
       if (fresh) {
