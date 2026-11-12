@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// 로컬 HTTP 서버 — 127.0.0.1 에만 붙는 보기 전용 화면. 사용법: node server/server.mjs [--port N] [--demo] [--open]
+// 로컬 HTTP 서버 — 기본은 127.0.0.1 에만 붙는 보기 전용 화면. config.json 의 lan 을 켜면 사내망에 열리고, 다른 PC 는 6자리 암호 로그인이 필요하다.
+// 사용법: node server/server.mjs [--port N] [--demo] [--open]
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WEB_DIR, officeHome, pidFile, startingLock } from './paths.mjs';
 import { VERSION, demoPort, loadConfig, resolvePort } from './config.mjs';
+import { createGate, isLoopback, loginPage, normalizeLan } from './lan.mjs';
 import { buildSnapshot } from './snapshot.mjs';
 import { createDemo } from './demo.mjs';
 import { APP, health, openBrowser, removePidFile, urlOf } from './control.mjs';
@@ -76,8 +78,24 @@ function sendFile(req, res, abs) {
   stream.pipe(res);
 }
 
-/** http.Server 를 만든다(listen 은 호출자가). opts: webDir·demo·snapshot(시험용 주입) */
-export function createOfficeServer({ webDir = WEB_DIR, demo = false, snapshot } = {}) {
+/** 요청 본문을 작게 읽는다(로그인 양식용). 한도를 넘으면 null */
+function readBody(req, max = 512) {
+  return new Promise((resolve) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > max) { resolve(null); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', () => resolve(null));
+  });
+}
+
+/** http.Server 를 만든다(listen 은 호출자가). opts: webDir·demo·snapshot(시험용 주입)·lan({pin} — 있으면 다른 PC 요청을 로그인으로 받는다) */
+export function createOfficeServer({ webDir = WEB_DIR, demo = false, snapshot, lan = null } = {}) {
+  const gate = lan && lan.pin ? createGate({ pin: lan.pin }) : null;
   const files = scanWeb(webDir);
   const demoSnap = demo ? createDemo() : null;
   const make = snapshot || (demo ? async () => demoSnap(Date.now()) : () => buildSnapshot());
@@ -90,14 +108,40 @@ export function createOfficeServer({ webDir = WEB_DIR, demo = false, snapshot } 
 
   const server = http.createServer(async (req, res) => {
     try {
-      // DNS 리바인딩 방지 — 남의 도메인 이름으로 들어온 요청은 거절한다
-      const port = server.address() && server.address().port;
-      const host = String(req.headers.host || '').toLowerCase();
-      if (![`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`].includes(host)) return send(res, 403, 'forbidden');
-      if (req.method !== 'GET') return send(res, 405, 'method not allowed', undefined, { Allow: 'GET' });
+      const remote = !!gate && !isLoopback(req.socket.remoteAddress);
       const raw = String(req.url || '/');
       const q = raw.indexOf('?');
       const p = q >= 0 ? raw.slice(0, q) : raw;
+      if (remote) {
+        // 다른 PC — 로그인 창과 로그인 처리만 열어 두고, 나머지는 로그인한 사람에게만 보여 준다(읽기 전용)
+        const ip = String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+        if (p === '/login') {
+          if (req.method === 'POST') {
+            const body = await readBody(req);
+            const pin = body === null ? '' : String(new URLSearchParams(body).get('pin') || '');
+            const r = gate.login(ip, pin);
+            console.log(`${new Date().toISOString()} login ${r.ok ? 'ok' : r.locked ? 'locked' : 'fail'} ${ip}`);
+            if (r.ok) return send(res, 303, '', undefined, { Location: '/', 'Set-Cookie': gate.cookie(r.token) });
+            const msg = r.locked ? `시도가 너무 많습니다. ${Math.max(1, Math.ceil(r.retryAfter / 60))}분 뒤에 다시 시도하십시오.` : '암호가 맞지 않습니다.';
+            return send(res, r.locked ? 429 : 401, loginPage(msg), 'text/html; charset=utf-8', r.locked ? { 'Retry-After': String(r.retryAfter) } : {});
+          }
+          if (req.method !== 'GET') return send(res, 405, 'method not allowed', undefined, { Allow: 'GET, POST' });
+          if (gate.authed(req)) return send(res, 303, '', undefined, { Location: '/' });
+          return send(res, 200, loginPage(), 'text/html; charset=utf-8');
+        }
+        if (!gate.authed(req)) {
+          const wantsPage = req.method === 'GET' && !p.startsWith('/api/') && String(req.headers.accept || '').includes('text/html');
+          if (wantsPage) return send(res, 303, '', undefined, { Location: '/login' });
+          return sendJson(res, 401, { error: 'login required' });
+        }
+        if (req.method !== 'GET') return send(res, 405, 'method not allowed', undefined, { Allow: 'GET' });
+      } else {
+        // DNS 리바인딩 방지 — 남의 도메인 이름으로 들어온 요청은 거절한다
+        const port = server.address() && server.address().port;
+        const host = String(req.headers.host || '').toLowerCase();
+        if (![`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`].includes(host)) return send(res, 403, 'forbidden');
+        if (req.method !== 'GET') return send(res, 405, 'method not allowed', undefined, { Allow: 'GET' });
+      }
       if (/\.\.|%2e|\\|%5c|%00/i.test(p)) return send(res, 404, 'not found'); // 경로조작
       let route;
       try {
@@ -146,7 +190,8 @@ async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const port = opts.port || (opts.demo ? demoPort() : resolvePort());
   const url = urlOf(port);
-  const server = createOfficeServer({ demo: opts.demo });
+  const lan = opts.demo ? { enabled: false, pin: '' } : normalizeLan(loadConfig().lan);   // 데모는 늘 이 PC 전용
+  const server = createOfficeServer({ demo: opts.demo, lan: lan.enabled ? lan : null });
   server.on('error', async (e) => {
     if (e.code !== 'EADDRINUSE') {
       console.error(`서버를 못 띄웠습니다 / cannot start server: ${e.message}`);
@@ -162,7 +207,7 @@ async function main() {
       `config.json 의 port 나 CLAUDE_OFFICE_PORT 로 바꾸세요 / change "port" in config.json or set CLAUDE_OFFICE_PORT.`);
     process.exit(1);
   });
-  server.listen(port, '127.0.0.1', () => {
+  server.listen(port, lan.enabled ? '0.0.0.0' : '127.0.0.1', () => {
     try {
       fs.mkdirSync(officeHome(), { recursive: true });
       fs.writeFileSync(pidFile(opts.demo), JSON.stringify({ pid: process.pid, port, demo: opts.demo, startedAt: new Date().toISOString() }));
@@ -170,7 +215,7 @@ async function main() {
     } catch (e) {
       console.error('pid 파일을 못 썼습니다 / cannot write pid file:', e.message);
     }
-    console.log(`${new Date().toISOString()} AgentLab ${VERSION} ${opts.demo ? 'demo ' : ''}listening on ${url}`);
+    console.log(`${new Date().toISOString()} AgentLab ${VERSION} ${opts.demo ? 'demo ' : ''}listening on ${url}${lan.enabled ? ' (사내망 공개 — 다른 PC 는 암호 로그인)' : ''}`);
     if (opts.open) openBrowser(url);
   });
   const bye = () => {

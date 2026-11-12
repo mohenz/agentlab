@@ -4,6 +4,7 @@ import path from 'node:path';
 import { REPO_DIR, configFile } from './paths.mjs';
 import { normalizeRoster } from './roster.mjs';
 import { normalizeSchedule } from './schedule.mjs';
+import { normalizeLan } from './lan.mjs';
 
 export const DEFAULT_PORT = 4777;
 /** 층 목록 기본값 — id 는 화면의 층 그림·좌표(web/office-world.js OFFICE_FLOORS)와 같아야 한다. label 은 config.json 의 floors 로 바꿀 수 있다 */
@@ -28,6 +29,7 @@ export const DEFAULTS = Object.freeze({
   defaultFloor: 'work1',
   contextWindow: 200000,
   accountMap: {},
+  lan: { enabled: false, pin: '' },
 });
 
 export const VERSION = (() => {
@@ -90,6 +92,7 @@ export function normalizeConfig(raw) {
     contextWindow: num(c.contextWindow, 10000, 5000000, DEFAULTS.contextWindow),
     accountMap,
     schedule: normalizeSchedule(c.schedule), // 계정이 들어 있다 — 응답·로그에 절대 싣지 않는다
+    lan: normalizeLan(c.lan),                // 접속 암호가 들어 있다 — 응답·로그에 절대 싣지 않는다
   };
 }
 

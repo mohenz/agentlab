@@ -460,6 +460,7 @@
     if (document.hidden) return;
     try {
       const res = await fetch("/api/office", { cache: "no-store" });
+      if (res.status === 401) { location.href = "/login"; return; }     // 사내망 접속 — 로그인이 풀렸으면 로그인 창으로
       if (!res.ok) throw new Error(String(res.status));
       const body = await res.json();
       const people = (Array.isArray(body?.people) ? body.people : []).filter(d => d && (d.id || d.path || d.name)).map(norm);

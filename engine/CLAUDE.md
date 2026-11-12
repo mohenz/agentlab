@@ -43,4 +43,4 @@
 - 외부 의존성 0 — Node.js 18+ 표준 라이브러리만. 화면도 CDN·웹폰트 없이 오프라인으로 돈다.
 - 데이터 형식·구조는 `docs/CONTRACT.md` 가 정본. 스프라이트 교체는 `docs/SPRITES.md`.
 - 시험: `npm test`. 시험은 진짜 `~/.claude` 를 건드리지 않게 `CLAUDE_CONFIG_DIR`·`CLAUDE_OFFICE_HOME` 을 임시 폴더로 둔다.
-- 서버는 127.0.0.1 에만 붙고 Host 헤더를 검사한다. 이 보안 성질을 깨는 변경 금지.
+- 서버는 기본으로 127.0.0.1 에만 붙고 Host 헤더를 검사한다. **다른 PC 에 여는 길은 `config.json` 의 `lan`(6자리 암호 로그인) 하나뿐**이다(docs/CONTRACT.md 5-3). 로그인 없이 열거나, 이 PC 요청의 Host 검사를 느슨하게 하거나, 쓰기 요청을 여는 변경 금지.
