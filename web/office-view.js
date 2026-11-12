@@ -95,12 +95,16 @@
     return c;
   }
 
+  // 뒷모습 앉은 자세는 머리가 앞모습보다 작게 그려져 있어(머리 폭 sitBack 415 / sitFront 436) 같은 크기로 보이게 키운다
+  const POSE_K = { sitBack: 1.1, sitBackPhone: 1.12 };
+
   // 자세 하나를 발끝(x,y) 기준으로 — 돌려주는 값 = 눌림 판정·글씨 자리용 상자(그림 좌표)
   function sprite(ctx, species, color, pose, x, y, stand, face, o = {}) {
     const [tail, i, native] = POSES[pose] || POSES.stand;
     const sheet = species + tail;
     const c = cell(sheet, i, color);
-    const k = stand * (o.k || 1) / (A.stand * TINT);
+    const pk = POSE_K[pose] || 1;
+    const k = stand * (o.k || 1) * pk / (A.stand * TINT);
     const dw = c.width * k, dh = c.height * k;
     const mirror = native ? face !== native : (!pose.startsWith("sitBack") && face > 0);
     ctx.save();
@@ -110,7 +114,7 @@
     ctx.scale((mirror ? -1 : 1) * (o.sx || 1), o.sy || 1);
     ctx.drawImage(c, -dw / 2, -dh + 2 * TINT * k, dw, dh);
     ctx.restore();
-    const h = stand * (o.k || 1) * (A.heights[sheet]?.[i] ?? 1) * (o.sy || 1);
+    const h = stand * (o.k || 1) * pk * (A.heights[sheet]?.[i] ?? 1) * (o.sy || 1);
     return { x: x - h * 0.34, y: y - h, w: h * 0.68, h, top: y - h };
   }
   function shadow(ctx, x, y, w) {
