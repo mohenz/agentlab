@@ -15,8 +15,8 @@ const CAST = [
 ];
 const DEMO_SCHEDULE = (now) => ({
   items: [
-    { id: 'd1', title: '[FO] 1.0 마이페이지 2차 고객 리뷰', startAt: new Date(now + 40 * 60000).toISOString(), endAt: new Date(now + 100 * 60000).toISOString(), allDay: false, location: '본관 22층 대회의실', sender: '홍길동', kind: 'calendar', isRead: true },
-    { id: 'd2', title: '주문 I/F 개발 일정 확인 미팅', startAt: new Date(now + 150 * 60000).toISOString(), endAt: new Date(now + 210 * 60000).toISOString(), allDay: false, location: '본관 15층 GREAT3', sender: '김철수', kind: 'calendar', isRead: true },
+    { id: 'd1', title: '샘플 일정 A 리뷰 미팅', startAt: new Date(now + 40 * 60000).toISOString(), endAt: new Date(now + 100 * 60000).toISOString(), allDay: false, location: '가상 회의실 1', sender: '샘플 사용자 1', kind: 'calendar', isRead: true },
+    { id: 'd2', title: '샘플 일정 B 확인 미팅', startAt: new Date(now + 150 * 60000).toISOString(), endAt: new Date(now + 210 * 60000).toISOString(), allDay: false, location: '가상 회의실 2', sender: '샘플 사용자 2', kind: 'calendar', isRead: true },
   ],
   fetchedAt: new Date(now).toISOString(), error: null, greeter: 'Rachael',
 });
