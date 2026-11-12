@@ -100,6 +100,8 @@ const SUITE_SPOTS = {
   stroll: [{ at: [560, 590], via: "lobA" }, { at: [700, 660], via: "lobB" }, { at: [1150, 600], via: "s2" }, { at: [900, 600], via: "in1" }],
 };
 const SUITE_CHATS = [{ pts: [[600, 585], [665, 600]], via: "lobA" }, { pts: [[1070, 625], [1135, 618]], via: "s2" }];
+// 유리문 안쪽(집무실) — 맞이하는 사람(greeter, 레이첼)만 들어간다. 나머지는 이 노드를 지나는 자리·대화·시작 위치를 쓰지 못한다
+const SUITE_INNER = ["gate", "in1", "s1", "s2", "s3", "s4"];
 
 // ---------------------------------------------------------------------------
 // 월드 모음 — knowledge 는 work 에서 검수실 자리를 뺀 것(서재로 바뀌어 책상이 없다)
@@ -110,11 +112,12 @@ const OFFICE_WORLDS = {
   knowledge: { nodes: WORK_NODES, edges: WORK_EDGES, walls: WORK_WALLS, blocks: WORK_BLOCKS, floor: WORK_FLOOR, desks: WORK_CUBICLE_DESKS,
                overflow: WORK_OVERFLOW, spots: WORK_SPOTS, homes: {}, chats: WORK_CHATS, start: ["inner", "lob2", "c1", "c3", "S2", "S3", "st"] },
   suite: { nodes: SUITE_NODES, edges: SUITE_EDGES, walls: SUITE_WALLS, blocks: SUITE_BLOCKS, floor: SUITE_FLOOR, desks: [],
-           overflow: [], spots: SUITE_SPOTS, homes: {}, chats: SUITE_CHATS, start: ["lobA", "lobB", "lobC", "in1", "s2"] },
+           overflow: [], spots: SUITE_SPOTS, homes: {}, chats: SUITE_CHATS, start: ["lobA", "lobB", "lobC", "in1", "s2"], inner: SUITE_INNER },
 };
 
 // 활성 월드 — 다른 파일(office-path.js·office-life.js·office-view.js)이 이 이름으로 읽는다. officeUseWorld 가 갈아 끼운다.
 let OFFICE_NODES, OFFICE_EDGES, OFFICE_WALLS, OFFICE_BLOCKS, OFFICE_FLOOR, OFFICE_DESKS, OFFICE_OVERFLOW, OFFICE_SPOTS, OFFICE_HOMES, OFFICE_CHATS, OFFICE_START;
+let OFFICE_INNER = new Set();   // 출입 제한 구역의 노드 이름 — 맞이하는 사람만 쓴다(없으면 제한 없음)
 let OFFICE_CHAIRS = [];     // 앉는 자리 목록 — 책상(OFFICE_DESKS) 다음에 회의실 의자(OFFICE_OVERFLOW). [{ seat, kid }]
 let OFFICE_WORLD_NAME = "";
 const OFFICE_WORLD_LISTENERS = [];
@@ -123,7 +126,7 @@ function officeUseWorld(name) {
   const w = OFFICE_WORLDS[name] || OFFICE_WORLDS.work;
   OFFICE_WORLD_NAME = OFFICE_WORLDS[name] ? name : "work";
   OFFICE_NODES = w.nodes; OFFICE_EDGES = w.edges; OFFICE_WALLS = w.walls; OFFICE_BLOCKS = w.blocks; OFFICE_FLOOR = w.floor;
-  OFFICE_HOMES = w.homes; OFFICE_CHATS = w.chats; OFFICE_START = w.start;
+  OFFICE_HOMES = w.homes; OFFICE_CHATS = w.chats; OFFICE_START = w.start; OFFICE_INNER = new Set(w.inner || []);
   OFFICE_DESKS = w.desks;
   // 회의실 의자는 책상 다음 번호(chair)를 받고, 쉬는 자리(meeting)도 같은 의자를 가리킨다
   OFFICE_OVERFLOW = w.overflow.map((o, i) => ({ ...o, chair: w.desks.length + i }));

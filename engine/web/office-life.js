@@ -89,9 +89,11 @@ const OfficeLife = (() => {
     || [...L.taken].some(([k, who]) => who !== me?.id && spotAt(k) && dist(spotAt(k), pt) < 34)
     // 회의실 의자를 일자리로 배정받은 사람(승인 대기로 잠깐 일어난 사이에도 그 의자는 그 사람 것)
     || [...L.desks].some(([n, k]) => k < 0 && n !== me?.id && dist(sitAt(OFFICE_OVERFLOW[-1 - k].seat, SIT_DESK), pt) < 34);
+  // 출입 제한 — 유리문 안쪽(OFFICE_INNER)은 맞이하는 사람(greeter)만 쓴다
+  const canUse = (q, via) => !via || !!q.greeter || !OFFICE_INNER.has(via);
   function takeSpot(p, kind) {
     const list = OFFICE_SPOTS[kind] || [];
-    const free = list.map((s, i) => i).filter(i => !L.taken.has(`${kind}:${i}`) && !occupied(list[i].at, p));
+    const free = list.map((s, i) => i).filter(i => canUse(p, list[i].via) && !L.taken.has(`${kind}:${i}`) && !occupied(list[i].at, p));
     if (!free.length) return null;
     const i = pick(free);
     L.taken.set(`${kind}:${i}`, p.id);
@@ -330,11 +332,12 @@ const OfficeLife = (() => {
   }
   function startChat(p, sit) {
     const busy = new Set([...L.chats].map(c => c.spot));
-    const spots = OFFICE_CHATS.filter(c => !busy.has(c) && !!c.sit === sit
+    const spots = OFFICE_CHATS.filter(c => !busy.has(c) && !!c.sit === sit && canUse(p, c.via)
       && !c.pts.some(pt => occupied(pt, p)));
-    const mates = shuffle([...L.people.values()].filter(q => q !== p && free(q)));
-    if (!spots.length || !mates.length) return false;
+    if (!spots.length) return false;
     const spot = pick(spots);
+    const mates = shuffle([...L.people.values()].filter(q => q !== p && free(q) && canUse(q, spot.via)));
+    if (!mates.length) return false;
     const n = sit ? Math.min(spot.pts.length, 1 + mates.length) : 2;       // 서서 떠드는 건 둘까지
     const members = [p, ...mates.slice(0, n - 1)];
     const chat = { spot, members, start: 0, next: 0, said: 0, last: null, born: L.t,
@@ -476,7 +479,7 @@ const OfficeLife = (() => {
         } else {                                     // 첫 화면 — 통로 점 하나에 세워 두고 할 일 자리로 바로 놓는다.
           // (0,0)에서 시작하면 걷기 없는 첫 할 일(기지개·빈자리 없음)일 때 그림 왼쪽 위 바깥에 서 있다가
           // 거기서 벽을 넘어 걸어 들어왔다
-          [p.x, p.y] = OFFICE_NODES[pick(OFFICE_START)];
+          [p.x, p.y] = OFFICE_NODES[pick(OFFICE_START.filter(n => p.greeter || !OFFICE_INNER.has(n)))];
           choose(p); snap(p);
         }
       } else if (back) {

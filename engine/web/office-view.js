@@ -585,7 +585,7 @@
 
   // 시험·점검용 — 지금 사무실에 누가 어디서 무엇을 하는지(화면 좌표 포함)
   window.officeDebug = () => [...L.people.values()].map(p => ({
-    id: p.id, name: p.name, floor: st.floor, species: p.species, color: p.color, kid: !!p.kid, status: p.status, home: p.home,
+    id: p.id, name: p.name, floor: st.floor, x: Math.round(p.x), y: Math.round(p.y), greeter: !!p.greeter, species: p.species, color: p.color, kid: !!p.kid, status: p.status, home: p.home,
     act: p.path.length ? "walk" : p.act?.work ? "desk" : p.act?.hop ? "ask" : (p.act?.pose || "idle"),
     pose: p.box ? poseOf(p, L.t) : null, bubble: p.bubble?.text || "", selected: p.id === st.sel,
     minis: [...L.minis.values()].filter(m => m.owner === p.id && (m.state === "wait" || m.state === "in")).length,
