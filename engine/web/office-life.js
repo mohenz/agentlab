@@ -420,7 +420,7 @@ const OfficeLife = (() => {
   // ---------- 맞이하기 — 오늘의 초청 일정을 말풍선으로 ----------
   // 서버의 schedule({ items:[{title,startAt,endAt,allDay,location}], error, greeter })을 받아 둔다. 이 층에 맞이하는 사람(greeter)이
   // 대기 자리(OFFICE_SPOTS.wait)에 서 있다가, 층에 들어오면 인사 → 남은 일정을 하나씩(시각·제목, 장소) → 맺음말.
-  const GREET_MAX_ITEMS = 6, GREET_BUBBLE = 44;
+  const GREET_MAX_ITEMS = 6, GREET_BUBBLE = 44, GREET_ITEM = 76;   // 일정 하나는 말풍선 하나(시각 + 제목 + 장소)
   const clock = iso => new Date(iso).toLocaleTimeString(I18N.lang === "en" ? "en-GB" : "ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
   function setSchedule(s) { L.schedule = s && Array.isArray(s.items) ? s : null; }
   function greetingSteps(w, now = Date.now()) {
@@ -433,8 +433,9 @@ const OfficeLife = (() => {
     const steps = [hello(t("sched.hello", { n: items.length, m: left.length }), { dur: 3.8, sayDur: 3.7 })];
     for (const it of left.slice(0, GREET_MAX_ITEMS)) {
       const when = it.allDay ? t("sched.allday") : clock(it.startAt);
-      steps.push({ pose: "talk", dur: 3.6, face: w.face, say: `${when} ${it.title}`, sayDur: 3.5, sayMax: GREET_BUBBLE });
-      if (it.location) steps.push({ pose: "think", dur: 2.4, face: w.face, say: `📍 ${it.location}`, sayDur: 2.3, sayKind: "think", sayMax: GREET_BUBBLE });
+      const text = `${when} ${it.title}${it.location ? ` · 📍 ${it.location}` : ""}`;
+      const dur = Math.max(3.8, 2.4 + Math.min(text.length, GREET_ITEM) * 0.07);   // 길수록 오래 보여 준다
+      steps.push({ pose: "talk", dur, face: w.face, say: text, sayDur: dur - 0.1, sayMax: GREET_ITEM });
     }
     if (left.length > GREET_MAX_ITEMS) steps.push({ pose: "talk", dur: 2.4, face: w.face, say: t("sched.more", { n: left.length - GREET_MAX_ITEMS }), sayDur: 2.3, sayMax: GREET_BUBBLE });
     steps.push({ pose: "wave", dur: 2, face: w.face, say: t("sched.end"), sayDur: 1.9 });
